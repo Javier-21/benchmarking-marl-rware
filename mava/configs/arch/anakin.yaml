@@ -1,3 +1,7 @@
+#  --- MODIFICATIONS ---
+# This file has been modified by Javier-21 in May 2026.
+# To add parameter to render and/or skip training
+
 # --- Anakin config ---
 architecture_name: anakin
 

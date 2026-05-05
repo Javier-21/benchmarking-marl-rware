@@ -1,3 +1,5 @@
+# This file is create by Javier-21 in May 2026.
+# It contains utility functions for rendering episodes of trained policies.
 
 import os
 import jax

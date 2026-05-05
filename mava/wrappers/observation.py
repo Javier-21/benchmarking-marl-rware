@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# --- MODIFICATIONS ---
+# This file has been modified by Javier-21 in May 2026.
+# To enable training and inference with a different number of agents.
 
 from functools import cached_property
 from typing import Tuple, Union
@@ -44,7 +47,7 @@ class AgentIDWrapper(Wrapper):
     ) -> Union[Observation, ObservationGlobalState]:
         """Adds agent IDs to the observation."""
         obs = timestep.observation
-        full_identity = jnp.eye(6) # INFO: Hardcodeamos a 6 agentes para que sea flexible de 2 a 6 agentes
+        full_identity = jnp.eye(6) # Hardcoded to 6 agents to provide flexibility for 2 to 6 agents.
         agent_ids = full_identity[:num_agents]
         agents_view = jnp.concatenate(
             [agent_ids, obs.agents_view],
@@ -78,7 +81,7 @@ class AgentIDWrapper(Wrapper):
     ) -> Union[specs.Spec[Observation], specs.Spec[ObservationGlobalState]]:
         """Specification of the observation of the selected environment."""
         obs_spec = self._env.observation_spec
-        num_obs_features = obs_spec.agents_view.shape[-1] + 6 # INFO: Hardcodeamos a 6 agentes para que sea flexible de 2 a 6 agentes
+        num_obs_features = obs_spec.agents_view.shape[-1] + 6 # Hardcoded to 6 agents to provide flexibility for 2 to 6 agents. agentes
         dtype = obs_spec.agents_view.dtype
         agents_view = specs.Array((self._env.num_agents, num_obs_features), dtype, "agents_view")
 

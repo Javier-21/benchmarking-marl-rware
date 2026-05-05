@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#  --- MODIFICATIONS ---
+# This file has been modified by Javier-21 in May 2026.
+# To add inference time metrics
 
 import abc
 import logging

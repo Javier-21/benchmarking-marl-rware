@@ -102,7 +102,7 @@ def add_extra_wrappers(
     before converting observation to GraphObservation."""
     # Disable the AgentID wrapper if the environment has implicit agent IDs.
     config.system.add_agent_id = config.system.add_agent_id & (~config.env.implicit_agent_id)
-    if config.system.add_agent_id: # INFO: Aquí es donde se añade las dimensiones referentes a los IDs de los agentes
+    if config.system.add_agent_id: # Agent ID dimensions are added here.
         train_env = AgentIDWrapper(train_env)
         eval_env = AgentIDWrapper(eval_env)
 
