@@ -612,6 +612,8 @@ def run_experiment(_config: DictConfig) -> float:
 
     if config.arch.render:
         # Render an episode.
+        render_hs = get_init_hidden_state(config.network.net_config, 1)
+        sable_execution_fn = partial(sable_execution_fn, hstates=render_hs)
         render_one_episode_sable(config, best_params, sable_execution_fn, eval_env)
 
     # Stop the logger.

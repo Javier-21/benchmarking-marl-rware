@@ -102,7 +102,6 @@ def get_learner_fn(
 
             # Apply the actor network to get the action, log_prob, value and updated hstates.
             last_obs = last_timestep.observation
-            breakpoint()
             action, log_prob, value, hstates = sable_action_select_fn(  # type: ignore
                 params,
                 last_obs,
