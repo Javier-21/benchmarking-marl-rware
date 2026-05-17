@@ -158,11 +158,7 @@ The table below displays the average number of delivered packages during inferen
 <table>
   <thead>
     <tr>
-      <!-- Celda con división diagonal usando CSS lineal -->
-      <th style="background: linear-gradient(to top right, transparent 49.5%, #d1d5db 49.5%, #d1d5db 50.5%, transparent 50.5%); position: relative; width: 120px; height: 40px; padding: 0;">
-        <span style="position: absolute; top: 2px; right: 5px; font-size: 0.85em; font-weight: bold;">Env.</span>
-        <span style="position: absolute; bottom: 2px; left: 5px; font-size: 0.85em; font-weight: bold;">Alg.</span>
-      </th>
+      <th align="right">Alg. \ Env.</th>
       <th align="right">tiny-2ag</th>
       <th align="right">tiny-4ag</th>
       <th align="right">small-4ag</th>
@@ -257,11 +253,7 @@ The following table records the absolute training execution times for each algor
 <table>
   <thead>
     <tr>
-      <!-- Celda con división diagonal usando CSS lineal -->
-      <th style="background: linear-gradient(to top right, transparent 49.5%, #d1d5db 49.5%, #d1d5db 50.5%, transparent 50.5%); position: relative; width: 120px; height: 40px; padding: 0;">
-        <span style="position: absolute; top: 2px; right: 5px; font-size: 0.85em; font-weight: bold;">Env.</span>
-        <span style="position: absolute; bottom: 2px; left: 5px; font-size: 0.85em; font-weight: bold;">Alg.</span>
-      </th>
+      <th align="right">Alg. \ Env.</th>
       <th align="right">tiny-2ag</th>
       <th align="right">tiny-4ag</th>
       <th align="right">small-4ag</th>
