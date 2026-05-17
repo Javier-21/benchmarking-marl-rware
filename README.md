@@ -149,7 +149,222 @@ This benchmark is designed to answer critical questions regarding the current st
 
 ## Experiments
 
-### Base performance
+### Base Performance
+
+In this experiment, we train all the algorithms from scratch under identical hyperparameter settings to evaluate their fundamental performance in the following environments: `tiny-2ag`, `tiny-4ag`, `small-4ag`, `medium-4ag` and `medium-6ag`. 
+
+The table below displays the average number of delivered packages during inference:
+
+<table>
+  <thead>
+    <tr>
+      <!-- Celda con división diagonal usando CSS lineal -->
+      <th style="background: linear-gradient(to top right, transparent 49.5%, #d1d5db 49.5%, #d1d5db 50.5%, transparent 50.5%); position: relative; width: 120px; height: 40px; padding: 0;">
+        <span style="position: absolute; top: 2px; right: 5px; font-size: 0.85em; font-weight: bold;">Env.</span>
+        <span style="position: absolute; bottom: 2px; left: 5px; font-size: 0.85em; font-weight: bold;">Alg.</span>
+      </th>
+      <th align="right">tiny-2ag</th>
+      <th align="right">tiny-4ag</th>
+      <th align="right">small-4ag</th>
+      <th align="right">medium-4ag</th>
+      <th align="right">medium-6ag</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>ff ippo</b></td>
+      <td align="right">13,14</td>
+      <td align="right">14,48</td>
+      <td align="right">5,85</td>
+      <td align="right">3,39</td>
+      <td align="right">0</td>
+    </tr>
+    <tr>
+      <td><b>rec ippo</b></td>
+      <td align="right">0,03</td>
+      <td align="right">16,87</td>
+      <td align="right">0,01</td>
+      <td align="right">0</td>
+      <td align="right">7,07</td>
+    </tr>
+    <tr>
+      <td><b>ff mappo</b></td>
+      <td align="right">14,67</td>
+      <td align="right">18,97</td>
+      <td align="right">6,79</td>
+      <td align="right">4,18</td>
+      <td align="right">5,08</td>
+    </tr>
+    <tr>
+      <td><b>rec mappo</b></td>
+      <td align="right">17,42</td>
+      <td align="right">19,45</td>
+      <td align="right">4,05</td>
+      <td align="right">0</td>
+      <td align="right">0,01</td>
+    </tr>
+    <tr>
+      <td><b>rec magpo</b></td>
+      <td align="right">1,98</td>
+      <td align="right">21,37</td>
+      <td align="right">0,03</td>
+      <td align="right">0</td>
+      <td align="right">0,02</td>
+    </tr>
+    <tr>
+      <td><b>mat</b></td>
+      <td align="right">15,81</td>
+      <td align="right">22,66</td>
+      <td align="right">13,24</td>
+      <td align="right">8,4</td>
+      <td align="right">5,62</td>
+    </tr>
+    <tr>
+      <td><b>ff sable</b></td>
+      <td align="right">16,27</td>
+      <td align="right">27,34</td>
+      <td align="right">7,81</td>
+      <td align="right">0,02</td>
+      <td align="right">0,33</td>
+    </tr>
+    <tr>
+      <td><b>rec sable</b></td>
+      <td align="right">16,97</td>
+      <td align="right">25,07</td>
+      <td align="right">4,92</td>
+      <td align="right">0</td>
+      <td align="right">0,01</td>
+    </tr>
+  </tbody>
+</table>
+
+* **Tiny Environments & Agent Density:** The `tiny` layout is simple enough for almost all paradigms to learn effectively. Scaling from 2 to 4 agents boosts performance across the board because doubling the robot density accelerates exploration and localized reward discovery. 
+* **Transformer Coordination Advantage:** Transformer-based architectures significantly outclass classical models under high-density constraints. When doubling the agent count in `tiny`:
+  * **MAT and SABLE** achieve a massive **40% to 70% performance surge**.
+  * **IPPO and MAPPO** only show a modest **10% to 30% improvement**.
+  This gap highlights the Transformers' superior spatial coordination, allowing them to optimize delivery routes while actively preventing collisions in congested corridors.
+* **The Anomalous Case of PPO + Memory:** `rec ippo` and `rec magpo` fail completely with 2 agents in `tiny` maps but match the baseline average with 4 agents (positioning `rec magpo` as the top-performing PPO variant in `tiny-4ag`). This behavior suggests that higher agent density is mandatory for these specific memory architectures to trigger successful initial exploration.
+* **The Exploration Bottleneck in Small Maps:** Scaling up to `small` layouts triggers a steep performance drop. **MAT stands out as the only architecture maintaining an acceptable delivery rate**. Standard recurrent models (with GRU or memory blocks) suffer severe performance deterioration here compared to their feed-forward counterparts. This likely  indicates a credit-assignment failure: due to delayed rewards in larger search spaces, the memory blocks wrongly associate long historical trajectories with low-value or useless states.
+* **Medium Map Dynamics & Scalability Boundaries:** In `medium` environments, the performance of all memory-centric models alongside `ff sable` collapses close to zero. However, critical structural patterns emerge among the remaining baselines:
+  * **IPPO:** Achieves minor success with 4 agents but drops to zero with 6, since treating independent agents as environmental noise compounds complexity exponentially as numbers grow.
+  * **MAPPO:** Mitigates this breakdown through its shared centralized critic; elevating the agent count increases the simulation context, yielding slightly superior results.
+  * **MAT:** Dominates the 4-agent variant but experiences a coordination bottleneck with 6 agents, equalizing its final score with MAPPO.
+  * **rec ippo (Anomaly):** Behaves erratically, failing completely with 4 agents but outperforming other PPO variants with 6 agents. This reinforces the hypothesis that high agent density is the primary driver for successful exploration in memory-recurrent baselines.
+
+
+The following table records the absolute training execution times for each algorithm across the evaluated simulator configurations:
+
+<table>
+  <thead>
+    <tr>
+      <!-- Celda con división diagonal usando CSS lineal -->
+      <th style="background: linear-gradient(to top right, transparent 49.5%, #d1d5db 49.5%, #d1d5db 50.5%, transparent 50.5%); position: relative; width: 120px; height: 40px; padding: 0;">
+        <span style="position: absolute; top: 2px; right: 5px; font-size: 0.85em; font-weight: bold;">Env.</span>
+        <span style="position: absolute; bottom: 2px; left: 5px; font-size: 0.85em; font-weight: bold;">Alg.</span>
+      </th>
+      <th align="right">tiny-2ag</th>
+      <th align="right">tiny-4ag</th>
+      <th align="right">small-4ag</th>
+      <th align="right">medium-4ag</th>
+      <th align="right">medium-6ag</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>ff ippo</b></td>
+      <td align="right">0:09:37</td>
+      <td align="right">0:10:42</td>
+      <td align="right">0:14:37</td>
+      <td align="right">0:19:36</td>
+      <td align="right">0:21:11</td>
+    </tr>
+    <tr>
+      <td><b>rec ippo</b></td>
+      <td align="right">0:17:01</td>
+      <td align="right">0:19:26</td>
+      <td align="right">0:22:36</td>
+      <td align="right">0:28:43</td>
+      <td align="right">0:31:01</td>
+    </tr>
+    <tr>
+      <td><b>ff mappo</b></td>
+      <td align="right">0:09:35</td>
+      <td align="right">0:10:38</td>
+      <td align="right">0:14:49</td>
+      <td align="right">0:20:31</td>
+      <td align="right">0:21:40</td>
+    </tr>
+    <tr>
+      <td><b>rec mappo</b></td>
+      <td align="right">17:29</td>
+      <td align="right">0:18:42</td>
+      <td align="right">0:22:35</td>
+      <td align="right">0:27:35</td>
+      <td align="right">0:31:33</td>
+    </tr>
+    <tr>
+      <td><b>rec magpo</b></td>
+      <td align="right">0:17:54</td>
+      <td align="right">0:21:48</td>
+      <td align="right">0:25:27</td>
+      <td align="right">0:30:07</td>
+      <td align="right">0:36:12</td>
+    </tr>
+    <tr>
+      <td><b>mat</b></td>
+      <td align="right">0:13:24</td>
+      <td align="right">0:16:10</td>
+      <td align="right">0:19:51</td>
+      <td align="right">0:25:34</td>
+      <td align="right">0:27:57</td>
+    </tr>
+    <tr>
+      <td><b>ff sable</b></td>
+      <td align="right">0:13:23</td>
+      <td align="right">0:15:34</td>
+      <td align="right">0:19:33</td>
+      <td align="right">0:24:37</td>
+      <td align="right">0:27:48</td>
+    </tr>
+    <tr>
+      <td><b>rec sable</b></td>
+      <td align="right">0:13:49</td>
+      <td align="right">0:17:12</td>
+      <td align="right">0:20:51</td>
+      <td align="right">0:25:37</td>
+      <td align="right">0:31:01</td>
+    </tr>
+  </tbody>
+</table>
+
+* **Map Size Penalty:** As the simulator complexity scales, training times increase significantly. Map dimensions act as the primary computational bottleneck due to the intense model-environment interaction loop, which inherently decreases the steps-per-second (SPS) processing throughput.
+* **Algorithmic Overhead:** Classical, feed-forward PPO baselines remain the fastest configurations. However, introducing recurrent memory layers inflicts a massive temporal penalty. Overall, **MAGPO** emerges as the most computationally expensive architecture. 
+* **The Transformer Sweet Spot:** Transformer-based models manage a well-balanced computational profile. While marginally slower than reactive, feed-forward PPO networks, they execute significantly faster than traditional recurrent baseline architectures (GRU-based models).
+
+#### Execution & Replication Script
+To replicate these baseline experiments, use the following execution template.
+
+```bash
+export XLA_PYTHON_CLIENT_ALLOCATOR=platform
+
+python mava/systems/mat/anakin/mat.py
+    env=rware
+    env/scenario=tiny-2ag
+    logger.loggers.tensorboard.enabled=true
+    logger.loggers.json.enabled=true
+    logger.checkpointing.save_model=true
+    logger.checkpointing.save_args.save_interval_steps=10
+    arch.num_envs=32
+    arch.num_evaluation=244
+    arch.num_absolute_metric_eval_episodes=640
+    system.num_updates=2000
+```
+
+The first line is instructions to prevent JAX from pre-allocating 90% of the GPU VRAM. Given our hardware resources, this parameter was mandatory to avoid system deadlocks. The rest of the command handles the execution of the selected algorithm—which in this example is MAT utilizing the Anakin architecture. The subsequent configuration variables manage the environment setup, logging, and hyperparameters.
+
+For this specific benchmark, the only variable modified across runs is env/scenario to swap the target map configuration. During the training pipeline, 32 environment scenarios run simultaneously, the policy is evaluated 244 times, and the network undergoes a total of 2,000 system updates. Finally, to test model inference, 640 absolute evaluation episodes are executed.
+
+
 
 ### Transfer learning
 
