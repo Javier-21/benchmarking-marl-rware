@@ -2,8 +2,28 @@
     <p>Benchmarking of Multi Agent Reinforcement Learning in Robotic Warehouse</p>
 </h2>
 
+This repository contains the source code, execution scripts, and comparative analysis developed in this thesis to evaluate **Multi-Agent Reinforcement Learning (MARL)** algorithms within automated logistics environments. 
 
-## Introduction
+The primary objective of this study is to measure and benchmark the task performance, computational overhead, and generalization capabilities of **Transformer-based** architectures (such as MAT and SABLE) against traditional **PPO-based** paradigms (IPPO, MAPPO, MAGPO) using the partially observable **RWARE** robotic warehouse simulator.
+
+
+## 📌 Table of Contents
+
+* [1. Introduction](#introduction)
+  * [Evaluated Algorithms](#evaluated-algorithms)
+  * [RWARE Simulator](#rware-simulator)
+  * [Key Research Questions](#key-research-questions)
+* [2. Installation](#installation)
+* [3. Experiments & Results](#experiments)
+  * [Base Performance](#base-performance)
+  * [Transfer Learning](#transfer-learning)
+  * [Zero-Shot Generalization to Map Size](#zero-shot-generalization-to-map-size)
+  * [Zero-Shot Generalization to Agent Counts](#zero-shot-generalization-to-agent-counts)
+  * [Deactivation of Memory](#deactivation-of-memory)
+* [4. Conclusion](#conclusion)
+* [5. References](#references)
+
+## 📖 Introduction
 The increasing deployment of autonomous agents for task automation is driving the need to discover and develop robust and scalable multi-agent solutions. Recent advancements in Multi-Agent Reinforcement Learning (MARL) have led to the design of frameworks that solve cooperative problems within groups of coordinated agents. However, traditional approaches often struggle with non-stationarity and partial observability. This thesis evaluates state-of-the-art MARL algorithms within a robotic warehouse logistics context (RWARE), a partially observable environment where each agent can only observe a small fraction of the warehouse.
 
 The evaluation focuses on the performance of Transformer-based architectures compared to established paradigms, such as Centralized Training with Decentralized Execution (CTDE) and Independent Reinforcement Learning (IRL). The main goal of this study is to analyze the trade-offs between task performance and resource consumption. Furthermore, the research investigates the Zero-shot Generalization of Transformer-based models, measuring their ability to transfer learned policies from a small-scale to large-scale warehouses without additional training.
@@ -145,9 +165,9 @@ This benchmark is designed to answer critical questions regarding the current st
 3. **Zero-Shot Generalization**: Are modern MARL architectures capable of handling zero-shot generalization when environment factors (like grid size or agent density) change?
 
 
-## Installation
+## 💻 Installation
 
-## Experiments
+## 📊 Experiments & Results
 
 ### Base Performance
 
@@ -357,14 +377,140 @@ The first line is instructions to prevent JAX from pre-allocating 90% of the GPU
 For this specific benchmark, the only variable modified across runs is env/scenario to swap the target map configuration. During the training pipeline, 32 environment scenarios run simultaneously, the policy is evaluated 244 times, and the network undergoes a total of 2,000 system updates. Finally, to test model inference, 640 absolute evaluation episodes are executed.
 
 
+---
 
 ### Transfer learning
+This section analyzes the impact of transferring knowledge across different warehouse configurations. The evaluation tracks how policies trained in smaller layouts scale up to more complex environments.
 
-### Zero-shot generalization
+>❗This transfer learning analysis excludes `rec ippo` and `rec magpo` due to poor initial performance in tiny layouts. <br> ❗A strict requirement for policy transfer is that the network parameter count must remain completely independent of the agent density. This rule makes MAPPO structurally incompatible because its centralized critic network grows proportionally with the agent count. This variation prevents a pretrained 2 agent model from loading into a 4 agent environment.
 
-## Conclusion
+The following tables showcase the average reward achieved when training from scratch compared to initializing the weights with prior knowledge.
 
-## References
+<table width="100%">
+  <!-- FILA 1: Tiny y Small -->
+  <tr>
+    <td width="50%" valign="top">
+      <h4>Tiny Layout (4 Agents)</h4>
+      <p>Models are initialized using weights from the tiny 2ag environment.</p>
+      <table>
+        <thead>
+          <tr>
+            <th align="left">Algorithm</th>
+            <th align="center">Base Performance</th>
+            <th align="center">Transfer Learning</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>ff ippo</td><td align="center">14.48</td><td align="center">23.47</td></tr>
+          <tr><td>mat</td><td align="center">22.66</td><td align="center">27.38</td></tr>
+          <tr><td>ff sable</td><td align="center">27.34</td><td align="center">34.01</td></tr>
+          <tr><td>rec sable</td><td align="center">25.07</td><td align="center">35.64</td></tr>
+        </tbody>
+      </table>
+    </td>
+    <td width="50%" valign="top">
+      <h4>Small Layout (4 Agents)</h4>
+      <p>Models are initialized using weights from the previously retrained tiny 4ag environment.</p>
+      <table>
+        <thead>
+          <tr>
+            <th align="left">Algorithm</th>
+            <th align="center">Base Performance</th>
+            <th align="center">Transfer Learning</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>ff ippo</td><td align="center">5.85</td><td align="center">0.00</td></tr>
+          <tr><td>mat</td><td align="center">13.24</td><td align="center">17.49</td></tr>
+          <tr><td>ff sable</td><td align="center">7.81</td><td align="center">0.00</td></tr>
+          <tr><td>rec sable</td><td align="center">4.92</td><td align="center">21.54</td></tr>
+        </tbody>
+      </table>
+    </td>
+  </tr>
+  <!-- FILA 2: Medium 4ag y Medium 6ag -->
+  <tr>
+    <td width="50%" valign="top">
+      <h4>Medium Layout (4 Agents)</h4>
+      <p>Models are initialized selectively based on the best results from the small 4ag phase. The models ff ippo and ff sable load their base configurations while mat and rec sable load their TL weights.</p>
+      <table>
+        <thead>
+          <tr>
+            <th align="left">Algorithm</th>
+            <th align="center">Base Performance</th>
+            <th align="center">Transfer Learning</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>ff ippo</td><td align="center">3.39</td><td align="center">7.49</td></tr>
+          <tr><td>mat</td><td align="center">8.40</td><td align="center">12.94</td></tr>
+          <tr><td>ff sable</td><td align="center">0.02</td><td align="center">11.34</td></tr>
+          <tr><td>rec sable</td><td align="center">0.00</td><td align="center">16.71</td></tr>
+        </tbody>
+      </table>
+    </td>
+    <td width="50%" valign="top">
+      <h4>Medium Layout (6 Agents)</h4>
+      <p>Models are initialized using weights directly from the medium 4ag transfer learning phase.</p>
+      <table>
+        <thead>
+          <tr>
+            <th align="left">Algorithm</th>
+            <th align="center">Base Performance</th>
+            <th align="center">Transfer Learning</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>ff ippo</td><td align="center">0.00</td><td align="center">11.21</td></tr>
+          <tr><td>mat</td><td align="center">5.62</td><td align="center">18.10</td></tr>
+          <tr><td>ff sable</td><td align="center">0.33</td><td align="center">17.97</td></tr>
+          <tr><td>rec sable</td><td align="center">0.01</td><td align="center">25.30</td></tr>
+        </tbody>
+      </table>
+    </td>
+  </tr>
+</table>
+
+* **Tiny 4ag Environments:** Significant performance spikes appear across all models. Initializing weights via tiny 2ag yields a 60% performance boost for `ff ippo`, matching the baseline of Transformer architectures. The memory version of SABLE improves by over 40%, securing the top spot for this configuration.
+
+* **Small 4ag Environments:** Results reveal a high degree of instability. Both `ff ippo` and `ff sable` fail to learn entirely. This suggests that rigid feed forward architectures overfit to the initial map dimensions, restricting their ability to explore new layouts (more information in section [Overfitting to Map Size](#overfitting-to-map-size)). Conversely, `mat` and `rec sable` successfully leverage prior knowledge, with `rec sable` gaining over 15 reward points.
+
+* **Medium 4ag Environments:** Every single algorithm successfully outperforms its respective baseline. While `ff ippo` doubles its score, it remains the lowest performing option. `mat` yields a steady but moderate improvement due to its high initial baseline. Both SABLE architectures jump from a baseline of zero to remarkable performance levels, especially the recurrent version.
+
+* **Medium 6ag Environments:** While `mat` was the only algorithm capable of scoring above zero from scratch, transfer learning enables every model to surpass the 10 point threshold. `rec sable` achieves the highest reward by a wide margin, proving that weight initialization gives memory structures an outstanding training advantage.
+
+---
+
+<p align="center">
+  <!-- Place your 4 evaluation graphs here -->
+  <img src="charts\202604_tl_vs_hard_ff_ippo.png" width="45%" alt="IPPO Comparison">
+  <img src="charts\202604_tl_vs_hard_mat.png" width="45%" alt="MAT Comparison">
+  <br>
+  <img src="charts\202604_tl_vs_hard_ff_sable.png" width="45%" alt="FF SABLE Comparison">
+  <img src="charts\202604_tl_vs_hard_rec_sable.png" width="45%" alt="REC SABLE Comparison">
+</p>
+
+* **ff ippo:** The environment complexity prevents standard learning. Without weight initialization, exploration fails completely to discover rewarding states. Transfer learning starts the policy at a reward near 10 and maintains a slight positive trend above that value.
+
+* **mat:** Demonstrates exceptional exploration across all three training modes. The transfer learning curve starts high at 15 points and grows gradually to 18. Intensive training shows an abrupt learning spike after checkpoint 100 followed by a plateau, eventually converging logarithmically with the transfer learning results.
+
+* **ff sable:** Exhibits dynamics similar to MAT. The transfer learning run starts near 15 and increases steadily to 18. Intensive training triggers a linear improvement after checkpoint 50 to match the TL score. The base run delays its learning until checkpoint 250, indicating that it would require significantly more iterations to converge.
+
+* **rec sable:** Faces notable exploration bottlenecks when training from scratch. The transfer learning run starts at 20 points and scales up to 26, showing the highest growth rate. Intensive training remains flat until checkpoint 170 before climbing linearly past 18 points. The base setup only begins to learn around checkpoint 350, highlighting a severe dependency on heavy compute resources.
+
+---
+
+### Zero-Shot Generalization to Map Size
+
+#### Overfitting to Map Size
+
+### Zero-Shot Generalization to Agent Counts
+
+### Deactivation of Memory
+
+## 📝 Conclusion
+
+## 📚 References
 
 The MAVA framework was developed by [InstaDeep](https://instadeep.com/). I have modified some parts so as to solve incompatibilities with my configuration or add new features, but the main algorithms' core belongs to InstaDeep's work. This [link](https://github.com/instadeepai/Mava/tree/main) redirects to the original MAVA repository.
 
