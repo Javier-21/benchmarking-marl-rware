@@ -9,19 +9,19 @@ The primary objective of this study is to measure and benchmark the task perform
 
 ## 📌 Table of Contents
 
-* [1. Introduction](#introduction)
+* [1. Introduction](#-introduction)
   * [Evaluated Algorithms](#evaluated-algorithms)
   * [RWARE Simulator](#rware-simulator)
   * [Key Research Questions](#key-research-questions)
-* [2. Installation](#installation)
-* [3. Experiments & Results](#experiments)
+* [2. Installation](#-installation)
+* [3. Experiments & Results](#-experiments--results)
   * [Base Performance](#base-performance)
   * [Transfer Learning](#transfer-learning)
   * [Zero-Shot Generalization to Map Size](#zero-shot-generalization-to-map-size)
   * [Zero-Shot Generalization to Agent Counts](#zero-shot-generalization-to-agent-counts)
   * [Deactivation of Memory](#deactivation-of-memory)
-* [4. Conclusion](#conclusion)
-* [5. References](#references)
+* [4. Conclusion](#-conclusion)
+* [5. References](#-references)
 
 ## 📖 Introduction
 The increasing deployment of autonomous agents for task automation is driving the need to discover and develop robust and scalable multi-agent solutions. Recent advancements in Multi-Agent Reinforcement Learning (MARL) have led to the design of frameworks that solve cooperative problems within groups of coordinated agents. However, traditional approaches often struggle with non-stationarity and partial observability. This thesis evaluates state-of-the-art MARL algorithms within a robotic warehouse logistics context (RWARE), a partially observable environment where each agent can only observe a small fraction of the warehouse.
