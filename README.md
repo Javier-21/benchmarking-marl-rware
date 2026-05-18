@@ -32,6 +32,8 @@ The evaluation focuses on the performance of Transformer-based architectures com
 
 This work aims to determine whether Transformer mechanisms can mitigate the scalability limits of current MARL methods. This evaluation seeks to provide a clear benchmark for selecting architectures that balance operational efficacy with computational cost in complex logistical systems.
 
+---
+
 ### Evaluated Algorithms
 To understand the impact of architectural choices on multi-agent coordination, we evaluate two distinct paradigms: **PPO-based** baselines and **Transformer-based** architectures. 
 
@@ -93,10 +95,11 @@ The algorithms, along with their respective script implementations in this repos
 * **MAT (Multi-Agent Transformer):** Reinterprets MARL as a sequence-to-sequence problem, framing multi-agent policy generation as a sequential decision-making process via Transformer blocks.
 * **SABLE:** An optimized Transformer variant for multi-agent environments that integrates Retentive Networks (RetNet). It leverages specialized retention mechanisms to handle long-horizon dependencies through efficient hidden-state processing, bypassing the limitations of classic recurrent layers.
 
+---
 
 ### RWARE Simulator
 
-The **Robotic Warehouse (`rware`)** simulator utilized in this project is the Jumanji library implementation. It replicates demand-driven, automated mobile-robot fulfillment centers where multiple agents must cooperate to locate specific shelves, deliver them to workstations, and return them under strict spatial constraints.
+The **Robotic Warehouse (RWARE)** simulator utilized in this project is the Jumanji library implementation. It replicates demand-driven, automated mobile-robot fulfillment centers where multiple agents must cooperate to locate specific shelves, deliver them to workstations, and return them under strict spatial constraints.
 
 Here is an example of the environment in action:
 
@@ -158,7 +161,7 @@ Each agent receives a flattened numerical vector containing **66 elements**, rep
         *   `1 binary`: Presence of a shelf.
         *   `1 binary`: Status of the shelf ($1$ if it is a target/green shelf).
 
-
+---
 
 ### Key Research Questions 
 This benchmark is designed to answer critical questions regarding the current state of MARL:
