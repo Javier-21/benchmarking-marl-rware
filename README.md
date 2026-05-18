@@ -38,6 +38,7 @@ A key architectural distinction across these models is how they handle temporal 
 * **MAGPO and SABLE (REC):** Manage temporal dependencies by processing and passing **hidden states** natively through their architectures instead of relying on traditional recurrent networks.
 
 The algorithms, along with their respective script implementations in this repository, are categorized as follows:
+<div align="center">
 
 <table>
   <thead>
@@ -78,6 +79,8 @@ The algorithms, along with their respective script implementations in this repos
     </tr>
   </tbody>
 </table>
+
+</div>
 
 #### 1. PPO-Based Baselines
 * **IPPO (Independent PPO):** A decentralized approach where each agent learns its own policy independently, treating other agents as part of the environment.
@@ -174,6 +177,7 @@ This benchmark is designed to answer critical questions regarding the current st
 In this experiment, we train all the algorithms from scratch under identical hyperparameter settings to evaluate their fundamental performance in the following environments: `tiny-2ag`, `tiny-4ag`, `small-4ag`, `medium-4ag` and `medium-6ag`. 
 
 The table below displays the average number of delivered packages during inference:
+<div align="center">
 
 <table>
   <thead>
@@ -253,6 +257,8 @@ The table below displays the average number of delivered packages during inferen
     </tr>
   </tbody>
 </table>
+
+</div>
 
 * **Tiny Environments & Agent Density:** The `tiny` layout is simple enough for almost all paradigms to learn effectively. Scaling from 2 to 4 agents boosts performance across the board because doubling the robot density accelerates exploration and localized reward discovery. 
 * **Transformer Coordination Advantage:** Transformer-based architectures significantly outclass classical models under high-density constraints. When doubling the agent count in `tiny`:
@@ -501,10 +507,115 @@ The following tables showcase the average reward achieved when training from scr
 ---
 
 ### Zero-Shot Generalization to Map Size
+This section evaluates the generalization capabilities of trained policies when deployed directly into larger environment layouts without any intermediate training or weight fine tuning.
+
+The following tables present the absolute performance drop when testing models under zero shot conditions. They compare the standard Base Performance and the Transfer Learning (TL) results against the direct Zero Shot deployment.
+
+<div align="center">
+<div style="display: flex; gap: 20px; flex-wrap: wrap;">
+<div style="flex: 1; min-width: 300px;" valign="top">
+
+#### Evaluation on Small Layout (4 Agents)
+Inference conducted using weights directly trained in the tiny 4ag environment.
+
+| Algorithm | Base | TL | Zero-Shot |
+| :--- | :---: | :---: | :---: |
+| ff ippo | 5.85 | 0.00 | 0.00 |
+| mat | 13.24 | 17.49 | 3.03 |
+| ff sable | 7.81 | 0.00 | 0.00 |
+| rec sable | 4.92 | 21.54 | 0.49 |
+
+</div>
+
+<div style="flex: 1; min-width: 300px;" valign="top">
+
+#### Evaluation on Medium Layout (4 Agents)
+Inference conducted using weights directly trained in the small 4ag environment.
+
+| Algorithm | Base | TL | Zero-Shot |
+| :--- | :---: | :---: | :---: |
+| ff ippo | 3.39 | 7.49 | 1.01 |
+| mat | 8.40 | 12.94 | 0.18 |
+| ff sable | 0.02 | 11.34 | 1.16 |
+| rec sable | 0.00 | 16.71 | 1.43 |
+
+</div>
+</div>
+</div>
+
+
+* **Scaling from Tiny to Small Layouts:** Both `ff ippo` and `ff sable` experience a complete performance collapse yielding zero rewards. This outcome aligns with previous findings where transferring knowledge between these specific setups also failed. Conversely, `rec sable` manages to complete occasional package deliveries. While this score remains low, it indicates the presence of shared cross environment navigation patterns. The MAT algorithm achieves a low score but its output stays close to the baseline performance of standalone models.
+
+* **Scaling from Small to Medium Layouts:** Every tested architecture scores average rewards above zero but remains strictly below the two point threshold. Although these models cannot operate optimally without dedicated retraining, the ability to secure occasional package deliveries confirms that they retain useful foundational behaviors and operational patterns. This survival of baseline skills directly explains why these models achieve such high acceleration during the transfer learning phases.
 
 #### Overfitting to Map Size
 
+---
+
 ### Zero-Shot Generalization to Agent Counts
+This section examines the capacity of trained policies to generalize when the absolute number of active agents increases at inference time without additional training updates.
+
+The following blocks present the results of expanding the team size. The first layout compares models trained on tiny 2ag and evaluated on tiny 4ag. The second layout tracks models trained on medium 4ag and evaluated on medium 6ag.
+
+<div align="center">
+<div style="display: flex; gap: 20px; flex-wrap: wrap;">
+
+<div style="flex: 1; min-width: 300px;" valign="top">
+
+#### Scaling to Tiny Layout (4 Agents)
+Inference conducted using weights trained on tiny 2ag.
+
+| Algorithm | Base | TL | Zero-Shot |
+| :--- | :---: | :---: | :---: |
+| ff ippo | 14.48 | 23.47 | 12.21 |
+| mat | 22.66 | 27.38 | 5.81 |
+| ff sable | 27.34 | 34.01 | 7.97 |
+| rec sable | 25.07 | 35.64 | 12.56 |
+
+</div>
+
+<div style="flex: 1; min-width: 300px;" valign="top">
+
+#### Scaling to Medium Layout (6 Agents)
+Inference conducted using weights trained on medium 4ag.
+
+| Algorithm | Base | TL | Zero-Shot |
+| :--- | :---: | :---: | :---: |
+| ff ippo | 0.00 | 11.21 | 8.47 |
+| mat | 5.62 | 18.10 | 13.32 |
+| ff sable | 0.33 | 17.97 | 12.91 |
+| rec sable | 0.01 | 25.30 | 18.89 |
+
+</div>
+</div>
+</div>
+
+* **Independent PPO Stability:** The `ff ippo` model demonstrates solid generalization properties. In tiny 4ag it scores very close to its standalone baseline performance. In the medium layout its final reward stays within less than three points of the fully retrained transfer learning setup.
+
+* **Feed Forward and Transformer Architecture Dynamics:** The MAT algorithm and `ff sable` follow a unified behavioral pattern. Both architectures display low generalization in tiny configurations by scoring under ten points. However, when deployed in medium environments, their zero shot rewards heavily outperform their respective base versions and even surpass the transfer learning scores of `ff ippo`.
+
+* **Recurrent SABLE Adaptability:** In the tiny setup, `rec sable` achieves scores comparable to the baseline of `ff ippo` but performs significantly below its own standalone baseline. In contrast, its medium environment generalization is outstanding, outperforming both MAT and `ff sable` transfer learning scores.
+
+The data reveals that agent scaling is considerably more successful in medium layouts than in tiny layouts. This discrepancy is directly linked to agent density relative to the map size. While the grid dimensions vary drastically between configurations, the medium layout only introduces two additional agents compared to its baseline setup. This difference results in a higher frequency of agent collisions within the confined spaces of the tiny map.
+
+Because the simulator triggers an immediate episode termination upon any collision, survival time determines the capacity to collect rewards. The table below outlines the average steps completed during zero shot inference.
+<div align="center">
+
+| Algorithm | Tiny Layout (4 Agents) | Medium Layout (6 Agents) |
+| :--- | :---: | :---: |
+| ff ippo | 208.51 | 247.60 |
+| mat | 87.83 | 291.11 |
+| ff sable | 234.88 | 293.80 |
+| rec sable | 264.45 | 343.41 |
+</div>
+
+* **MAT Vulnerability:** The MAT model suffers severely from spatial crowding when scaling down. In tiny layouts it rarely surpasses one hundred steps before a collision occurs, which heavily restricts its capability to accumulate rewards. However, its trajectory extends to nearly three hundred steps in medium layouts, enabling high performance.
+
+* **IPPO Consistency:** The `ff ippo` model maintains highly stable episode lengths across both configurations. While it does not achieve the highest step count, its medium environment episodes only expand by roughly forty steps compared to the tiny setup.
+
+* **SABLE Performance:** Both SABLE variants position themselves between the behaviors of IPPO and MAT. The step delta between maps remains wider than in IPPO but narrower than in MAT. This restriction prevents the architectures from unlocking their full potential in tiny crowded grids, yet allows them to match or exceed fully trained baselines in spacious medium layouts.
+
+---
 
 ### Deactivation of Memory
 
