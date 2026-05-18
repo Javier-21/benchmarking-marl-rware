@@ -20,8 +20,10 @@ The primary objective of this study is to measure and benchmark the task perform
   * [Zero-Shot Generalization to Map Size](#zero-shot-generalization-to-map-size)
   * [Zero-Shot Generalization to Agent Counts](#zero-shot-generalization-to-agent-counts)
   * [Deactivation of Memory](#deactivation-of-memory)
+  * [Visual Rollouts of Top Performing Models](#visual-rollouts-of-top-performing-models)
 * [4. Conclusion](#-conclusion)
-* [5. References](#-references)
+* [5. Future work](#️-future-work)
+* [6. References](#-references)
 
 ## 📖 Introduction
 The increasing deployment of autonomous agents for task automation is driving the need to discover and develop robust and scalable multi-agent solutions. Recent advancements in Multi-Agent Reinforcement Learning (MARL) have led to the design of frameworks that solve cooperative problems within groups of coordinated agents. However, traditional approaches often struggle with non-stationarity and partial observability. This thesis evaluates state-of-the-art MARL algorithms within a robotic warehouse logistics context (RWARE), a partially observable environment where each agent can only observe a small fraction of the warehouse.
@@ -504,6 +506,29 @@ The following tables showcase the average reward achieved when training from scr
 
 * **rec sable:** Faces notable exploration bottlenecks when training from scratch. The transfer learning run starts at 20 points and scales up to 26, showing the highest growth rate. Intensive training remains flat until checkpoint 170 before climbing linearly past 18 points. The base setup only begins to learn around checkpoint 350, highlighting a severe dependency on heavy compute resources.
 
+#### Execution & Replication Script
+To replicate these experiments, use the following execution template.
+
+```bash
+export XLA_PYTHON_CLIENT_ALLOCATOR=platform
+
+python mava/systems/ppo/anakin/ff_ippo.py
+  env=rware
+  env/scenario=tiny-4ag
+  logger.loggers.tensorboard.enabled=true
+  logger.loggers.json.enabled=true
+  logger.checkpointing.load_model=true
+  logger.checkpointing.load_args.checkpoint_uid="tiny_2ag"
+  logger.checkpointing.save_model=true
+  logger.checkpointing.save_args.save_interval_steps=10
+  arch.num_envs=32
+  arch.num_evaluation=244
+  arch.num_absolute_metric_eval_episodes=640
+  system.num_updates=2000
+```
+
+This script handles the execution of the selected algorithm which in this example is ff ippo utilizing the Anakin architecture. The key configuration variables are `logger.checkpointing.load_model=true` and `logger.checkpointing.load_args.checkpoint_uid="tiny_2ag"` which are required to load an existing model structure and initialize the training network parameters.
+
 ---
 
 ### Zero-Shot Generalization to Map Size
@@ -549,6 +574,114 @@ Inference conducted using weights directly trained in the small 4ag environment.
 * **Scaling from Small to Medium Layouts:** Every tested architecture scores average rewards above zero but remains strictly below the two point threshold. Although these models cannot operate optimally without dedicated retraining, the ability to secure occasional package deliveries confirms that they retain useful foundational behaviors and operational patterns. This survival of baseline skills directly explains why these models achieve such high acceleration during the transfer learning phases.
 
 #### Overfitting to Map Size
+Specific isolation tests are conducted to evaluate why `ff ippo` and `ff sable` experience a complete performance collapse when shifting from a tiny 4ag environment to a small 4ag layout. 
+
+The original transfer learning pipeline initializes the network using the absolute best weights obtained during the tiny 4ag transfer phase. This setup corresponds to loading parameters from the **TL** column to produce the rewards under the **TL1** column. To analyze the underlying learning mechanics, this experiment introduces an alternative route: initializing the networks using weights from the raw baseline training instead. This process corresponds to loading parameters from the **Base** column of the tiny layout to produce the results under the **TL2** column.
+
+<div align="center">
+<div style="display: flex; gap: 20px; flex-wrap: wrap;">  
+<div style="flex: 1; min-width: 300px;" valign="top">
+
+##### Reference Metrics in Tiny Layout (4 Agents)
+Initial performance benchmarks achieved during earlier training stages.
+
+| Algorithm | Base | TL |
+| :--- | :---: | :---: |
+| ff ippo | 14.48 | 23.47 |
+| ff sable | 27.34 | 34.01 |
+
+</div>
+
+<div style="flex: 1; min-width: 300px;" valign="top">
+
+##### Re-Training Results in Small Layout (4 Agents)
+Comparison between the failed transfer path (TL1) and the alternative baseline transfer path (TL2).
+
+| Algorithm | Base | TL1 | TL2 |
+| :--- | :---: | :---: | :---: |
+| ff ippo | 5.85 | 0.00 | 11.16 |
+| ff sable | 7.81 | 0.00 | 17.57 |
+
+</div>
+</div>
+</div>
+
+The empirical results reveal a paradoxical behavior where initializing weights with a lower performing tiny 4ag model actually yields a highly successful knowledge transfer in the larger layout. Rendered simulations explain this phenomenon through distinct behavioral patterns.
+
+* **The TL to TL1 Failed Transfer Path:** When rendering the direct zero shot deployment of the high performing TL weights into the small 4ag map, agents confine their navigation loops to a highly restricted sub section of the grid. They behave as if constrained by invisible borders, attempting to replicate the exact spatial trajectories suited for a tiny layout. Once an agent accidentally crosses these fictional boundaries, fluid movement stops completely and the agent enters a state of near total paralysis. When analyzing the final re trained TL1 models, agents remain highly static and simply spin in place, repeating the exact same paralysis loop.
+
+<div align="center">
+<div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
+<div style="flex: 1; min-width: 250px; max-width: 45%; text-align: center;">
+
+##### Original Behavior in Tiny Layout
+<img src="render/ff_sable/rware_tiny-4ag-tl-tl.gif" width="100%" alt="TL Performance in Tiny">
+
+</div>
+
+<div style="flex: 1; min-width: 250px; max-width: 45%; text-align: center;">
+
+##### Zero-Shot Deployment (Failed Path)
+<img src="render/ff_sable/rware_small-4ag-zero_shot-tl.gif" width="100%" alt="Failed Zero-Shot in Small">
+
+</div>
+
+<div style="flex: 1; min-width: 250px; max-width: 45%; text-align: center;">
+
+##### Transfer Learning Behavior in Small Layout (Failes Path)
+<img src="render/ff_sable/rware_small-4ag-tl-tl.gif" width="100%" alt="Successful Zero-Shot in Small">
+
+</div>
+</div>
+</div>
+
+* **The Base to TL2 Successful Transfer Path:** Rendering the zero shot deployment using the lower performing Base weights reveals a similar spatial restriction but with a much less rigid boundary. The agents still focus their movements within a limited area, yet they break out of the imaginary zone far more frequently. Crucially, when crossing these boundaries, they do not suffer from severe freezing, which allows the policy to successfully discover rewards and adapt to the expanded grid during re training.
+
+<div align="center">
+<div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
+<div style="flex: 1; min-width: 250px; max-width: 45%; text-align: center;">
+
+##### Original Behavior in Tiny Layout
+<img src="render/ff_sable/rware_tiny-4ag-base.gif" width="100%" alt="Base Performance in Tiny">
+
+</div>
+
+<div style="flex: 1; min-width: 250px; max-width: 45%; text-align: center;">
+
+##### Zero-Shot Deployment (Successful Path)
+<img src="render/ff_sable/rware_small-4ag-zero_shot-base.gif" width="100%" alt="Successful Zero-Shot in Small">
+
+</div>
+
+<div style="flex: 1; min-width: 250px; max-width: 45%; text-align: center;">
+
+##### Transfer Learning Behavior in Small Layout (Successful Path)
+<img src="render/ff_sable/rware_small-4ag-tl-base.gif" width="100%" alt="Successful Zero-Shot in Small">
+
+</div>
+</div>
+</div>
+
+
+#### Execution & Replication Script
+To replicate these experiments, use the following execution template.
+
+```bash
+export XLA_PYTHON_CLIENT_ALLOCATOR=platform
+
+python mava/systems/sable/anakin/ff_sable.py \
+  env=rware \
+  env/scenario=small-4ag \
+  logger.loggers.tensorboard.enabled=true \
+  logger.loggers.json.enabled=true \
+  logger.checkpointing.load_model=true \
+  logger.checkpointing.load_args.checkpoint_uid="tl_tiny_4ag" \
+  arch.num_envs=32 \
+  arch.num_absolute_metric_eval_episodes=640 \
+  arch.train=False
+```
+
+This script handles the execution of the selected algorithm which in this example is `ff sable` utilizing the Anakin architecture. The key configuration variable is `arch.train=False` which freezes the learning process and configures the system to run exclusively in evaluation mode preventing the weights from being updated.
 
 ---
 
@@ -615,11 +748,165 @@ Because the simulator triggers an immediate episode termination upon any collisi
 
 * **SABLE Performance:** Both SABLE variants position themselves between the behaviors of IPPO and MAT. The step delta between maps remains wider than in IPPO but narrower than in MAT. This restriction prevents the architectures from unlocking their full potential in tiny crowded grids, yet allows them to match or exceed fully trained baselines in spacious medium layouts.
 
+#### Execution & Replication Script
+To replicate these experiments, use the following execution template.
+
+```bash
+export XLA_PYTHON_CLIENT_ALLOCATOR=platform
+
+python mava/systems/sable/anakin/rec_sable.py \
+  env=rware \
+  env/scenario=medium-6ag \
+  logger.loggers.tensorboard.enabled=true \
+  logger.loggers.json.enabled=true \
+  logger.checkpointing.load_model=true \
+  logger.checkpointing.load_args.checkpoint_uid="tl_medium_4ag" \
+  arch.num_envs=32 \
+  arch.num_absolute_metric_eval_episodes=640 \
+  arch.train=False
+```
+
+This script handles the execution of the selected algorithm which in this example is `rec sable` utilizing the Anakin architecture. The key configuration variable is `arch.train=False` which freezes the learning process and configures the system to run exclusively in evaluation mode preventing the weights from being updated.
+
 ---
 
 ### Deactivation of Memory
+Previous benchmark stages demonstrate that memory recurrent models achieve superior peak rewards during transfer learning or intensive training cycles. However, these same architectures face severe exploration bottlenecks during the initial phases of learning. 
 
-## 📝 Conclusion
+To address this limitation, a hybrid training strategy is proposed: initializing the training pipeline without memory layers to accelerate early feature discovery, and activating the recurrent memory blocks midway through the process to enhance long horizon optimization. While the programmatic construction of this dynamic hybrid architecture falls outside the scope of this thesis, the following experiment provides a empirical justification for its implementation in future research.
+
+The table below details the average number of delivered packages achieved by the Hybrid Sable approach (loading feed forward weights into the memory network) versus the standard Recurrent Sable approach (using memory weights for both initial training and subsequent re-training).
+
+<div align='center'>
+
+| Environment Layout | Hybrid Sable (FF to REC) | Recurrent Sable (REC to REC) |
+| :--- | :---: | :---: |
+| small-4ag | 14.79 | 13.92 |
+| medium-4ag | 3.73 | 3.24 |
+| medium-6ag | 8.01 | 0.14 |
+
+</div>
+
+* **Small 4ag Environment:** The Hybrid Sable method utilizes the base `ff sable` weights which originally scored 7.81 points. The control setup uses the base `rec sable` weights which originally scored 4.91 points. Following the re-training phase, both configurations converge toward highly similar final rewards. This indicates that when the foundational model already possesses a minimum threshold of environment knowledge, further optimization leads to equivalent performance plateaus.
+
+* **Medium 4ag Environment:** Both foundational baseline models start with initial rewards near zero due to the exploration bottleneck in larger grid spaces. However, upon executing the re-training phase, both configurations successfully break the initial exploration barrier to surpass the three point reward threshold.
+
+* **Medium 6ag Environment: ** This configuration reveals the most drastic performance divergence. The baseline `ff sable` model starts with a minor score of 0.33 while the baseline `rec sable` sits at a near zero reward of 0.01. Despite both initial states being highly deficient, Hybrid Sable successfully reaches an average reward of 8 points. Meanwhile, the standard recurrent control setup fails to learn entirely during re-training.
+
+#### Execution & Replication Script
+To replicate these experiments, use the following execution template.
+
+```bash
+export XLA_PYTHON_CLIENT_ALLOCATOR=platform
+
+python mava/systems/sable/anakin/hybrid_sable.py
+  env=rware \
+  env/scenario=medium-6ag \
+  logger.loggers.tensorboard.enabled=true  \
+  logger.loggers.json.enabled=true  \
+  logger.checkpointing.load_model=true  \
+  logger.checkpointing.load_args.checkpoint_uid="ff_sable_medium_6ag" \
+  logger.checkpointing.save_model=true \
+  logger.checkpointing.save_args.save_interval_steps=10 \
+  arch.num_envs=32 \
+  arch.num_evaluation=244 \
+  arch.num_absolute_metric_eval_episodes=640 \
+  system.num_updates=2000
+```
+
+This script handles the execution of the selected algorithm which in this example is `hybrid sable` utilizing the Anakin architecture. The core mechanism in this execution routine involves loading the pretrained parameters of the reactive `ff sable` network into the memoryful model while targeted at the exact same environmental deployment scenario where the subsequent re training phase takes pace.
+
+---
+
+### Visual Rollouts of Top Performing Models
+
+The following visual demonstrations showcase the behavioral execution and coordination strategies learned by the highest scoring models in each specific warehouse configuration. These rollouts capture how agents navigate narrow corridors, manage load constraints, and actively prevent grid collisions during inference.
+
+<div align="center">
+<div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
+<div style="flex: 1; min-width: 280px; max-width: 45%; text-align: center;">
+
+#### Tiny 4ag Layout Rollout
+🥇 **Top Model: rec sable (Transfer Learning)**  
+*Average Reward: 35.64*
+
+<img src="render/rec_sable/rware_tiny-4ag.gif" width="100%" alt="Tiny Layout Best Model">
+
+</div>
+
+<div style="flex: 1; min-width: 280px; max-width: 45%; text-align: center;">
+
+#### Small 4ag Layout Rollout
+🥇 **Top Model: rec sable (Transfer Learning)**  
+*Average Reward: 21.54*
+
+<img src="render/rec_sable/rware_small-4ag.gif" width="100%" alt="Small Layout Best Model">
+
+</div>
+
+<div style="flex: 1; min-width: 280px; max-width: 45%; text-align: center;">
+
+#### Medium 6ag Layout Rollout
+🥇 **Top Model: rec sable (Transfer Learning)**  
+*Average Reward: 25.30*
+
+<!-- Replace with your actual gif path -->
+<img src="render/rec_sable/rware_medium-6ag.gif" width="100%" alt="Medium 6ag Best Model">
+
+</div>
+</div>
+</div>
+
+
+#### Execution & Replication Script
+To render the inference visualization, use the following execution template.
+
+```bash
+export XLA_PYTHON_CLIENT_ALLOCATOR=platform
+
+python mava/systems/sable/anakin/rec_sable.py \
+  env=rware \
+  env/scenario=medium-6ag \
+  logger.checkpointing.load_model=true  \
+  logger.checkpointing.load_args.checkpoint_uid="tl_medium_6ag" \
+  arch.train=False \
+  arch.absolute_metric=False \
+  arch.render=True
+```
+
+This script handles the execution of the selected algorithm which in this example is `rec sable` utilizing the Anakin architecture. The configuration flag `arch.render=True` triggers the simulation visualization engine while `arch.train=False` and `arch.absolute_metric=False` bypass both the standard training loops and the absolute metric logging routines to focus exclusively on rendering the active episode rollout.
+
+## 🎯 Conclusion
+
+The experiments conducted in this benchmark establish a comprehensive comparative framework to evaluate traditional Multi Agent Reinforcement Learning (MARL) algorithms against state of the art Transformer based models. The empirical evidence gathered across the different warehouse testing environments leads to the following core conclusions.
+
+🏆 **Transformer Based Architectures Deliver Superior Performance**
+Both MAT and SABLE consistently outperform traditional PPO based algorithms. This performance gap becomes significantly more pronounced as the environment complexity scales up and when leveraging intensive training schedules or transfer learning techniques.
+
+🔄 **Knowledge Transfer Significantly Accelerates Training Outcomes**
+Initializing network parameters with weights from a simpler environment drastically improves final training rewards. While architectures like IPPO and `ff sable` carry a risk of performance degradation due to spatial overfitting on the base map, MAT and `rec sable` prove highly robust and successfully exploit prior knowledge to achieve much higher coordination levels.
+
+❌ **Zero Shot Map Size Generalization Remains Infeasible**
+Neural network models inherently overfit to the explicit physical dimensions of their training grid. Deploying a policy into a larger warehouse layout without an intermediate training phase triggers highly restricted and erratic agent movements. This structural limitation affects every tested algorithm equally, proving that map scale is a definitive boundary for direct generalization.
+
+👥 **Zero Shot Agent Scaling Generalization Functions Successfully**
+The benchmark demonstrates that multi agent systems can maintain solid operational performance when expanding the active team size at inference time. While this direct deployment works correctly, it leaves room for optimization since a dedicated retraining process always yields superior rewards compared to raw zero shot execution.
+
+🧠 **Recurrent Memory Layers Unlock Higher Peak Rewards**
+Memory heavy architectures consistently secure higher final reward plateaus. However, in complex or sparse reward setups, these structures suffer from severe early exploration bottlenecks. To bypass this slow initial learning phase, memory models require either an extended training duration or the application of strategic transfer learning techniques.
+
+## 🚀 Future Work
+
+While this study successfully addresses the primary research questions regarding multi agent coordination, the empirical findings open up several compelling directions for future research and technical development.
+
+* **Development of a Dynamic Hybrid Memory Architecture**
+The experimental data confirms that reactive feed forward configurations accelerate early exploration and feature discovery, while recurrent memory blocks excel at exploiting that knowledge to reach higher peak rewards. This synergy motivates the design of a specialized framework capable of dynamically activating and deactivating memory components during the training process to maximize sample efficiency.
+
+* **Implementation of Reward Shaping and Intermediate Rewards**
+The RWARE simulator presents an environment characterized by extremely sparse and delayed global rewards. A highly valuable next step involves integrating intermediate shaping rewards to guide the agents during exploration phases, which could significantly improve final inference scores and stabilize early training curves.
+
+* **Strategic Training Pipeline Optimization**
+This benchmark highlights multiple independent avenues for performance enhancement, such as strategic weight initialization and transfer learning. A non trivial future challenge lies in defining an optimized algorithmic flowchart that combines these techniques seamlessly, establishing a standard training pipeline that balances maximum operational efficacy with minimal computational cost.
 
 ## 📚 References
 
