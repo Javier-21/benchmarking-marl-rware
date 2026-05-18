@@ -768,7 +768,6 @@ The table below details the average number of delivered packages achieved by the
 | :--- | :---: | :---: | :---: |
 | Hybrid Sable (FF to REC) | 14.79 |  3.73 | 8.01 |
 | Recurrent Sable (REC to REC) | 13.92 | 3.24 | 0.14 |
-| medium-6ag |  
 
 </div>
 
@@ -865,33 +864,25 @@ This script handles the execution of the selected algorithm which in this exampl
 
 The experiments conducted in this benchmark establish a comprehensive comparative framework to evaluate traditional Multi Agent Reinforcement Learning (MARL) algorithms against state of the art Transformer based models. The empirical evidence gathered across the different warehouse testing environments leads to the following core conclusions.
 
-🏆 **Transformer Based Architectures Deliver Superior Performance**
-Both MAT and SABLE consistently outperform traditional PPO based algorithms. This performance gap becomes significantly more pronounced as the environment complexity scales up and when leveraging intensive training schedules or transfer learning techniques.
+🏆 **Transformer Based Architectures Deliver Superior Performance:** Both MAT and SABLE consistently outperform traditional PPO based algorithms. This performance gap becomes significantly more pronounced as the environment complexity scales up and when leveraging intensive training schedules or transfer learning techniques.
 
-🔄 **Knowledge Transfer Significantly Accelerates Training Outcomes**
-Initializing network parameters with weights from a simpler environment drastically improves final training rewards. While architectures like IPPO and `ff sable` carry a risk of performance degradation due to spatial overfitting on the base map, MAT and `rec sable` prove highly robust and successfully exploit prior knowledge to achieve much higher coordination levels.
+🔄 **Knowledge Transfer Significantly Accelerates Training Outcomes:** Initializing network parameters with weights from a simpler environment drastically improves final training rewards. While architectures like IPPO and `ff sable` carry a risk of performance degradation due to spatial overfitting on the base map, MAT and `rec sable` prove highly robust and successfully exploit prior knowledge to achieve much higher coordination levels.
 
-❌ **Zero Shot Map Size Generalization Remains Infeasible**
-Neural network models inherently overfit to the explicit physical dimensions of their training grid. Deploying a policy into a larger warehouse layout without an intermediate training phase triggers highly restricted and erratic agent movements. This structural limitation affects every tested algorithm equally, proving that map scale is a definitive boundary for direct generalization.
+❌ **Zero Shot Map Size Generalization Remains Infeasible:** Neural network models inherently overfit to the explicit physical dimensions of their training grid. Deploying a policy into a larger warehouse layout without an intermediate training phase triggers highly restricted and erratic agent movements. This structural limitation affects every tested algorithm equally, proving that map scale is a definitive boundary for direct generalization.
 
-👥 **Zero Shot Agent Scaling Generalization Functions Successfully**
-The benchmark demonstrates that multi agent systems can maintain solid operational performance when expanding the active team size at inference time. While this direct deployment works correctly, it leaves room for optimization since a dedicated retraining process always yields superior rewards compared to raw zero shot execution.
+👥 **Zero Shot Agent Scaling Generalization Functions Successfully:** The benchmark demonstrates that multi agent systems can maintain solid operational performance when expanding the active team size at inference time. While this direct deployment works correctly, it leaves room for optimization since a dedicated retraining process always yields superior rewards compared to raw zero shot execution.
 
-🧠 **Recurrent Memory Layers Unlock Higher Peak Rewards**
-Memory heavy architectures consistently secure higher final reward plateaus. However, in complex or sparse reward setups, these structures suffer from severe early exploration bottlenecks. To bypass this slow initial learning phase, memory models require either an extended training duration or the application of strategic transfer learning techniques.
+🧠 **Recurrent Memory Layers Unlock Higher Peak Rewards:** Memory heavy architectures consistently secure higher final reward plateaus. However, in complex or sparse reward setups, these structures suffer from severe early exploration bottlenecks. To bypass this slow initial learning phase, memory models require either an extended training duration or the application of strategic transfer learning techniques.
 
 ## 🚀 Future Work
 
 While this study successfully addresses the primary research questions regarding multi agent coordination, the empirical findings open up several compelling directions for future research and technical development.
 
-* **Development of a Dynamic Hybrid Memory Architecture**
-The experimental data confirms that reactive feed forward configurations accelerate early exploration and feature discovery, while recurrent memory blocks excel at exploiting that knowledge to reach higher peak rewards. This synergy motivates the design of a specialized framework capable of dynamically activating and deactivating memory components during the training process to maximize sample efficiency.
+* **Development of a Dynamic Hybrid Memory Architecture:** The experimental data confirms that reactive feed forward configurations accelerate early exploration and feature discovery, while recurrent memory blocks excel at exploiting that knowledge to reach higher peak rewards. This synergy motivates the design of a specialized framework capable of dynamically activating and deactivating memory components during the training process to maximize sample efficiency.
 
-* **Implementation of Reward Shaping and Intermediate Rewards**
-The RWARE simulator presents an environment characterized by extremely sparse and delayed global rewards. A highly valuable next step involves integrating intermediate shaping rewards to guide the agents during exploration phases, which could significantly improve final inference scores and stabilize early training curves.
+* **Implementation of Reward Shaping and Intermediate Rewards:** The RWARE simulator presents an environment characterized by extremely sparse and delayed global rewards. A highly valuable next step involves integrating intermediate shaping rewards to guide the agents during exploration phases, which could significantly improve final inference scores and stabilize early training curves.
 
-* **Strategic Training Pipeline Optimization**
-This benchmark highlights multiple independent avenues for performance enhancement, such as strategic weight initialization and transfer learning. A non trivial future challenge lies in defining an optimized algorithmic flowchart that combines these techniques seamlessly, establishing a standard training pipeline that balances maximum operational efficacy with minimal computational cost.
+* **Strategic Training Pipeline Optimization:** This benchmark highlights multiple independent avenues for performance enhancement, such as transfer learning. A non trivial future challenge lies in defining an optimized algorithmic flowchart that combines these techniques seamlessly, establishing a standard training pipeline that balances maximum operational efficacy with minimal computational cost.
 
 ## 📚 References
 
