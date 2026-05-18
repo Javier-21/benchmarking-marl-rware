@@ -22,7 +22,7 @@ The primary objective of this study is to measure and benchmark the task perform
   * [Deactivation of Memory](#deactivation-of-memory)
   * [Visual Rollouts of Top Performing Models](#visual-rollouts-of-top-performing-models)
 * [4. Conclusions](#-conclusions)
-* [5. Future work](#️-future-work)
+* [5. Future Work](#-future-work)
 * [6. References](#-references)
 
 ## 📖 Introduction
@@ -473,6 +473,7 @@ Models are initialized using weights directly from the medium 4ag transfer learn
 
 * **Medium 6ag Environments:** While `mat` was the only algorithm capable of scoring above zero from scratch, transfer learning enables every model to surpass the 10 point threshold. `rec sable` achieves the highest reward by a wide margin, proving that weight initialization gives memory structures an outstanding training advantage.
 
+The next charts show the reward evolution through the training evaluations:
 
 <p align="center">
   <img src="charts\202604_tl_vs_hard_ff_ippo.png" width="45%" alt="IPPO Comparison">
@@ -484,11 +485,11 @@ Models are initialized using weights directly from the medium 4ag transfer learn
 
 * **ff ippo:** The environment complexity prevents standard learning. Without weight initialization, exploration fails completely to discover rewarding states. Transfer learning starts the policy at a reward near 10 and maintains a slight positive trend above that value.
 
-* **mat:** Demonstrates exceptional exploration across all three training modes. The transfer learning curve starts high at 15 points and grows gradually to 18. Intensive training shows an abrupt learning spike after checkpoint 100 followed by a plateau, eventually converging logarithmically with the transfer learning results.
+* **mat:** Demonstrates exceptional exploration across all three training modes. The transfer learning curve starts high at 15 points and grows gradually to 18. Intensive training shows an abrupt learning spike after checkpoint 100 followed by a plateau, eventually converging logarithmically with the transfer learning results. Base training shows the same behavior as intensive training but at a slower pace. This implies that with more iterations all three training approaches would eventually converge to the same results.
 
 * **ff sable:** Exhibits dynamics similar to MAT. The transfer learning run starts near 15 and increases steadily to 18. Intensive training triggers a linear improvement after checkpoint 50 to match the TL score. The base run delays its learning until checkpoint 250, indicating that it would require significantly more iterations to converge.
 
-* **rec sable:** Faces notable exploration bottlenecks when training from scratch. The transfer learning run starts at 20 points and scales up to 26, showing the highest growth rate. Intensive training remains flat until checkpoint 170 before climbing linearly past 18 points. The base setup only begins to learn around checkpoint 350, highlighting a severe dependency on heavy compute resources.
+* **rec sable:** Faces notable exploration bottlenecks when training from scratch. The transfer learning run starts at 20 points and scales up to 26, showing the highest growth rate. Intensive training remains flat until checkpoint 170 before climbing linearly past 18 points. The base training only begins to learn around checkpoint 350, highlighting a severe dependency on heavy compute resources.
 
 #### Execution & Replication Script
 To replicate these experiments, use the following execution template.
@@ -496,29 +497,29 @@ To replicate these experiments, use the following execution template.
 ```bash
 export XLA_PYTHON_CLIENT_ALLOCATOR=platform
 
-python mava/systems/ppo/anakin/ff_ippo.py
-  env=rware
-  env/scenario=tiny-4ag
-  logger.loggers.tensorboard.enabled=true
-  logger.loggers.json.enabled=true
-  logger.checkpointing.load_model=true
-  logger.checkpointing.load_args.checkpoint_uid="tiny_2ag"
-  logger.checkpointing.save_model=true
-  logger.checkpointing.save_args.save_interval_steps=10
-  arch.num_envs=32
-  arch.num_evaluation=244
-  arch.num_absolute_metric_eval_episodes=640
+python mava/systems/ppo/anakin/ff_ippo.py \
+  env=rware \
+  env/scenario=tiny-4ag \
+  logger.loggers.tensorboard.enabled=true \
+  logger.loggers.json.enabled=true \
+  logger.checkpointing.load_model=true \
+  logger.checkpointing.load_args.checkpoint_uid="tiny_2ag" \
+  logger.checkpointing.save_model=true \
+  logger.checkpointing.save_args.save_interval_steps=10 \
+  arch.num_envs=32 \
+  arch.num_evaluation=244 \
+  arch.num_absolute_metric_eval_episodes=640 \
   system.num_updates=2000
 ```
 
-This script handles the execution of the selected algorithm which in this example is ff ippo utilizing the Anakin architecture. The key configuration variables are `logger.checkpointing.load_model=true` and `logger.checkpointing.load_args.checkpoint_uid="tiny_2ag"` which are required to load an existing model structure and initialize the training network parameters.
+This script handles the execution of the selected algorithm, which in this example is `ff ippo` utilizing the Anakin architecture. The key configuration variables are `logger.checkpointing.load_model=true` and `logger.checkpointing.load_args.checkpoint_uid="tiny_2ag"` which are required to load an existing model structure and initialize the training network parameters.
 
 ---
 
 ### Zero-Shot Generalization to Map Size
 This section evaluates the generalization capabilities of trained policies when deployed directly into larger environment layouts without any intermediate training or weight fine tuning.
 
-The following tables present the absolute performance drop when testing models under zero shot conditions. They compare the standard Base Performance and the Transfer Learning (TL) results against the direct Zero Shot deployment.
+The following tables present the performance when testing models under Zero-shot conditions. They compare the standard Base Performance and the Transfer Learning (TL) results against the Zero Shot Generalization.
 
 <div align="center">
 <div style="display: flex; gap: 20px; flex-wrap: wrap;">
@@ -527,7 +528,7 @@ The following tables present the absolute performance drop when testing models u
 #### Evaluation on Small Layout (4 Agents)
 Inference conducted using weights directly trained in the tiny 4ag environment.
 
-| Algorithm | Base | TL | Zero-Shot |
+| Alg. \ Exp. | Base | TL | Zero-Shot |
 | :--- | :---: | :---: | :---: |
 | ff ippo | 5.85 | 0.00 | 0.00 |
 | mat | 13.24 | 17.49 | 3.03 |
@@ -541,26 +542,26 @@ Inference conducted using weights directly trained in the tiny 4ag environment.
 #### Evaluation on Medium Layout (4 Agents)
 Inference conducted using weights directly trained in the small 4ag environment.
 
-| Algorithm | Base | TL | Zero-Shot |
+| Alg. \ Exp. | Base | TL | Zero-Shot |
 | :--- | :---: | :---: | :---: |
 | ff ippo | 3.39 | 7.49 | 1.01 |
 | mat | 8.40 | 12.94 | 0.18 |
 | ff sable | 0.02 | 11.34 | 1.16 |
-| rec sable | 0.00 | 16.71 | 1.43 |
+| rec sable | 0.00 | 16.71 | 0.36 |
 
 </div>
 </div>
 </div>
 
 
-* **Scaling from Tiny to Small Layouts:** Both `ff ippo` and `ff sable` experience a complete performance collapse yielding zero rewards. This outcome aligns with previous findings where transferring knowledge between these specific setups also failed. Conversely, `rec sable` manages to complete occasional package deliveries. While this score remains low, it indicates the presence of shared cross environment navigation patterns. The MAT algorithm achieves a low score but its output stays close to the baseline performance of standalone models.
+* **Scaling from Tiny to Small Layouts:** Both `ff ippo` and `ff sable` experience a complete performance collapse yielding zero rewards. This outcome aligns with previous findings where transferring knowledge between these specific setups also failed. Conversely, `rec sable` manages to complete occasional package deliveries. While this score remains low, it indicates the presence of shared cross environment navigation patterns. The MAT algorithm scores low, but its result remains close to the base performance of `ff_ipp` and `rec_sable`.
 
-* **Scaling from Small to Medium Layouts:** Every tested architecture scores average rewards above zero but remains strictly below the two point threshold. Although these models cannot operate optimally without dedicated retraining, the ability to secure occasional package deliveries confirms that they retain useful foundational behaviors and operational patterns. This survival of baseline skills directly explains why these models achieve such high acceleration during the transfer learning phases.
+* **Scaling from Small to Medium Layouts:** Every tested architecture scores average rewards above zero, but remains strictly below the two point threshold. Although these models cannot operate optimally without dedicated retraining, the ability to secure occasional package deliveries confirms that they retain useful foundational behaviors and operational patterns. This survival of baseline skills directly explains why these models achieve such high acceleration during the transfer learning phases.
 
 #### Overfitting to Map Size
-Specific isolation tests are conducted to evaluate why `ff ippo` and `ff sable` experience a complete performance collapse when shifting from a tiny 4ag environment to a small 4ag layout. 
+Specific isolation tests are conducted to evaluate why `ff ippo` and `ff sable` experience a complete performance collapse when shifting from a `tiny 4ag` environment to a small 4ag layout. 
 
-The original transfer learning pipeline initializes the network using the absolute best weights obtained during the tiny 4ag transfer phase. This setup corresponds to loading parameters from the **TL** column to produce the rewards under the **TL1** column. To analyze the underlying learning mechanics, this experiment introduces an alternative route: initializing the networks using weights from the raw baseline training instead. This process corresponds to loading parameters from the **Base** column of the tiny layout to produce the results under the **TL2** column.
+The original transfer learning pipeline initializes the network using the absolute best weights obtained during the `tiny 4ag` transfer phase. This setup corresponds to loading parameters from the **TL** column to produce the rewards under the **TL1** column. To analyze the underlying learning mechanics, this experiment introduces an alternative route: initializing the networks using weights from the raw baseline training instead. This process corresponds to loading parameters from the **Base** column of the tiny layout to produce the results under the **TL2** column.
 
 <div align="center">
 <div style="display: flex; gap: 20px; flex-wrap: wrap;">  
@@ -569,7 +570,7 @@ The original transfer learning pipeline initializes the network using the absolu
 ##### Reference Metrics in Tiny Layout (4 Agents)
 Initial performance benchmarks achieved during earlier training stages.
 
-| Algorithm | Base | TL |
+| Alg. \ Exp. | Base | TL |
 | :--- | :---: | :---: |
 | ff ippo | 14.48 | 23.47 |
 | ff sable | 27.34 | 34.01 |
@@ -581,7 +582,7 @@ Initial performance benchmarks achieved during earlier training stages.
 ##### Re-Training Results in Small Layout (4 Agents)
 Comparison between the failed transfer path (TL1) and the alternative baseline transfer path (TL2).
 
-| Algorithm | Base | TL1 | TL2 |
+| Alg. \ Exp. | Base | TL1 | TL2 |
 | :--- | :---: | :---: | :---: |
 | ff ippo | 5.85 | 0.00 | 11.16 |
 | ff sable | 7.81 | 0.00 | 17.57 |
@@ -590,30 +591,30 @@ Comparison between the failed transfer path (TL1) and the alternative baseline t
 </div>
 </div>
 
-The empirical results reveal a paradoxical behavior where initializing weights with a lower performing tiny 4ag model actually yields a highly successful knowledge transfer in the larger layout. Rendered simulations explain this phenomenon through distinct behavioral patterns.
+The empirical results reveal a paradoxical behavior where initializing weights with a lower performing `tiny 4ag` model actually yields a highly successful knowledge transfer in the larger layout. Rendered simulations explain this phenomenon through distinct behavioral patterns.
 
-* **The TL to TL1 Failed Transfer Path:** When rendering the direct zero shot deployment of the high performing TL weights into the small 4ag map, agents confine their navigation loops to a highly restricted sub section of the grid. They behave as if constrained by invisible borders, attempting to replicate the exact spatial trajectories suited for a tiny layout. Once an agent accidentally crosses these fictional boundaries, fluid movement stops completely and the agent enters a state of near total paralysis. When analyzing the final re trained TL1 models, agents remain highly static and simply spin in place, repeating the exact same paralysis loop.
+* **The TL to TL1 Failed Transfer Path:** When rendering the direct Zero-shot deployment of the high performing TL weights into the `small 4ag` map, agents confine their navigation loops to a highly restricted sub section of the grid. They behave as if constrained by invisible borders, attempting to replicate the exact spatial trajectories suited for a tiny layout. Once an agent accidentally crosses these fictional boundaries, fluid movement stops completely and the agent enters a state of near total paralysis. When analyzing the final re trained TL1 models, agents remain highly static and simply spin in place, repeating the exact same paralysis loop.
 
 <div align="center">
 <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
 <div style="flex: 1; min-width: 250px; max-width: 45%; text-align: center;">
 
-##### Original Behavior in Tiny Layout
-<img src="render/ff_sable/rware_tiny-4ag-tl-tl.gif" width="100%" alt="TL Performance in Tiny">
+##### Original TL Behavior in Tiny Layout
+<img src="render/ff_sable/rware_tiny-4ag-tl-tl.gif" width="40%" alt="TL Performance in Tiny">
 
 </div>
 
 <div style="flex: 1; min-width: 250px; max-width: 45%; text-align: center;">
 
-##### Zero-Shot Deployment (Failed Path)
-<img src="render/ff_sable/rware_small-4ag-zero_shot-tl.gif" width="100%" alt="Failed Zero-Shot in Small">
+##### Zero-Shot Deployment (TL)
+<img src="render/ff_sable/rware_small-4ag-zero_shot-tl.gif" width="40%" alt="Failed Zero-Shot in Small">
 
 </div>
 
 <div style="flex: 1; min-width: 250px; max-width: 45%; text-align: center;">
 
-##### Transfer Learning Behavior in Small Layout (Failes Path)
-<img src="render/ff_sable/rware_small-4ag-tl-tl.gif" width="100%" alt="Successful Zero-Shot in Small">
+##### Transfer Learning Behavior in Small Layout (TL1)
+<img src="render/ff_sable/rware_small-4ag-tl-tl.gif" width="40%" alt="Successful Zero-Shot in Small">
 
 </div>
 </div>
@@ -625,22 +626,22 @@ The empirical results reveal a paradoxical behavior where initializing weights w
 <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
 <div style="flex: 1; min-width: 250px; max-width: 45%; text-align: center;">
 
-##### Original Behavior in Tiny Layout
-<img src="render/ff_sable/rware_tiny-4ag-base.gif" width="100%" alt="Base Performance in Tiny">
+##### Original Base Behavior in Tiny Layout
+<img src="render/ff_sable/rware_tiny-4ag-base.gif" width="40%" alt="Base Performance in Tiny">
 
 </div>
 
 <div style="flex: 1; min-width: 250px; max-width: 45%; text-align: center;">
 
-##### Zero-Shot Deployment (Successful Path)
-<img src="render/ff_sable/rware_small-4ag-zero_shot-base.gif" width="100%" alt="Successful Zero-Shot in Small">
+##### Zero-Shot Deployment (Base)
+<img src="render/ff_sable/rware_small-4ag-zero_shot-base.gif" width="40%" alt="Successful Zero-Shot in Small">
 
 </div>
 
 <div style="flex: 1; min-width: 250px; max-width: 45%; text-align: center;">
 
-##### Transfer Learning Behavior in Small Layout (Successful Path)
-<img src="render/ff_sable/rware_small-4ag-tl-base.gif" width="100%" alt="Successful Zero-Shot in Small">
+##### Transfer Learning Behavior in Small Layout (TL2)
+<img src="render/ff_sable/rware_small-4ag-tl-base.gif" width="40%" alt="Successful Zero-Shot in Small">
 
 </div>
 </div>
@@ -665,14 +666,14 @@ python mava/systems/sable/anakin/ff_sable.py \
   arch.train=False
 ```
 
-This script handles the execution of the selected algorithm which in this example is `ff sable` utilizing the Anakin architecture. The key configuration variable is `arch.train=False` which freezes the learning process and configures the system to run exclusively in evaluation mode preventing the weights from being updated.
+This script handles the execution of the selected algorithm, which in this example is `ff sable` utilizing the Anakin architecture. The key configuration variable is `arch.train=False` which freezes the learning process and configures the system to run exclusively in evaluation mode preventing the weights from being updated.
 
 ---
 
 ### Zero-Shot Generalization to Agent Counts
 This section examines the capacity of trained policies to generalize when the absolute number of active agents increases at inference time without additional training updates.
 
-The following blocks present the results of expanding the team size. The first layout compares models trained on tiny 2ag and evaluated on tiny 4ag. The second layout tracks models trained on medium 4ag and evaluated on medium 6ag.
+The following blocks present the results of the expansion of the number of agents. The first layout compares models trained on `tiny 2ag` and evaluated on `tiny 4ag`. The second layout tracks models trained on `medium 4ag` and evaluated on `medium 6ag`.
 
 <div align="center">
 <div style="display: flex; gap: 20px; flex-wrap: wrap;">
@@ -682,7 +683,7 @@ The following blocks present the results of expanding the team size. The first l
 #### Scaling to Tiny Layout (4 Agents)
 Inference conducted using weights trained on tiny 2ag.
 
-| Algorithm | Base | TL | Zero-Shot |
+| Alg. \ Exp. | Base | TL | Zero-Shot |
 | :--- | :---: | :---: | :---: |
 | ff ippo | 14.48 | 23.47 | 12.21 |
 | mat | 22.66 | 27.38 | 5.81 |
@@ -696,7 +697,7 @@ Inference conducted using weights trained on tiny 2ag.
 #### Scaling to Medium Layout (6 Agents)
 Inference conducted using weights trained on medium 4ag.
 
-| Algorithm | Base | TL | Zero-Shot |
+| Alg. \ Exp. | Base | TL | Zero-Shot |
 | :--- | :---: | :---: | :---: |
 | ff ippo | 0.00 | 11.21 | 8.47 |
 | mat | 5.62 | 18.10 | 13.32 |
@@ -707,18 +708,18 @@ Inference conducted using weights trained on medium 4ag.
 </div>
 </div>
 
-* **Independent PPO Stability:** The `ff ippo` model demonstrates solid generalization properties. In tiny 4ag it scores very close to its standalone baseline performance. In the medium layout its final reward stays within less than three points of the fully retrained transfer learning setup.
+* **Independent PPO Stability:** The `ff ippo` model demonstrates solid generalization properties. In `tiny 4ag` it scores very close to its standalone baseline performance. In the `medium` layout its final reward stays within less than three points of the fully retrained transfer learning setup.
 
-* **Feed Forward and Transformer Architecture Dynamics:** The MAT algorithm and `ff sable` follow a unified behavioral pattern. Both architectures display low generalization in tiny configurations by scoring under ten points. However, when deployed in medium environments, their zero shot rewards heavily outperform their respective base versions and even surpass the transfer learning scores of `ff ippo`.
+* **Feed Forward and Transformer Architecture Dynamics:** The MAT algorithm and `ff sable` follow a unified behavioral pattern. Both architectures display low generalization in `tiny` configurations by scoring under ten points. However, when deployed in `medium` environments, their zero shot rewards heavily outperform their respective base versions and even surpass the transfer learning scores of `ff ippo`.
 
-* **Recurrent SABLE Adaptability:** In the tiny setup, `rec sable` achieves scores comparable to the baseline of `ff ippo` but performs significantly below its own standalone baseline. In contrast, its medium environment generalization is outstanding, outperforming both MAT and `ff sable` transfer learning scores.
+* **Recurrent SABLE Adaptability:** In the `tiny` setup, `rec sable` achieves scores comparable to the baseline of `ff ippo` but performs significantly below its own standalone baseline. In contrast, its `medium` environment generalization is outstanding, outperforming both MAT and `ff sable` transfer learning scores.
 
-The data reveals that agent scaling is considerably more successful in medium layouts than in tiny layouts. This discrepancy is directly linked to agent density relative to the map size. While the grid dimensions vary drastically between configurations, the medium layout only introduces two additional agents compared to its baseline setup. This difference results in a higher frequency of agent collisions within the confined spaces of the tiny map.
+The data reveals that agent scaling is considerably more successful in `medium` layouts than in `tiny` layouts. This discrepancy is directly linked to agent density relative to the map size. While the grid dimensions vary drastically between configurations, the `medium` layout only introduces two additional agents compared to its baseline setup. This difference results in a higher frequency of agent collisions within the confined spaces of the `tiny` map.
 
 Because the simulator triggers an immediate episode termination upon any collision, survival time determines the capacity to collect rewards. The table below outlines the average steps completed during zero shot inference.
 <div align="center">
 
-| Algorithm | Tiny Layout (4 Agents) | Medium Layout (6 Agents) |
+| Alg. \ Env. | Tiny Layout (4 Agents) | Medium Layout (6 Agents) |
 | :--- | :---: | :---: |
 | ff ippo | 208.51 | 247.60 |
 | mat | 87.83 | 291.11 |
@@ -726,11 +727,11 @@ Because the simulator triggers an immediate episode termination upon any collisi
 | rec sable | 264.45 | 343.41 |
 </div>
 
-* **MAT Vulnerability:** The MAT model suffers severely from spatial crowding when scaling down. In tiny layouts it rarely surpasses one hundred steps before a collision occurs, which heavily restricts its capability to accumulate rewards. However, its trajectory extends to nearly three hundred steps in medium layouts, enabling high performance.
+* **MAT Vulnerability:** The MAT model suffers severely from spatial crowding when scaling down. In `tiny` layouts it rarely surpasses one hundred steps before a collision occurs, which heavily restricts its capability to accumulate rewards. However, its trajectory extends to nearly three hundred steps in `medium` layouts, enabling high performance.
 
-* **IPPO Consistency:** The `ff ippo` model maintains highly stable episode lengths across both configurations. While it does not achieve the highest step count, its medium environment episodes only expand by roughly forty steps compared to the tiny setup.
+* **IPPO Consistency:** The `ff ippo` model maintains highly stable episode lengths across both configurations. While it does not achieve the highest step count, its `medium` environment episodes only expand by roughly forty steps compared to the `tiny` setup.
 
-* **SABLE Performance:** Both SABLE variants position themselves between the behaviors of IPPO and MAT. The step delta between maps remains wider than in IPPO but narrower than in MAT. This restriction prevents the architectures from unlocking their full potential in tiny crowded grids, yet allows them to match or exceed fully trained baselines in spacious medium layouts.
+* **SABLE Performance:** Both SABLE variants position themselves between the behaviors of IPPO and MAT. The step delta between maps remains wider than in IPPO but narrower than in MAT. This restriction prevents the architectures from unlocking their full potential in `tiny` crowded grids, yet allows them to match or exceed fully trained baselines in spacious `medium` layouts.
 
 #### Execution & Replication Script
 To replicate these experiments, use the following execution template.
@@ -750,24 +751,24 @@ python mava/systems/sable/anakin/rec_sable.py \
   arch.train=False
 ```
 
-This script handles the execution of the selected algorithm which in this example is `rec sable` utilizing the Anakin architecture. The key configuration variable is `arch.train=False` which freezes the learning process and configures the system to run exclusively in evaluation mode preventing the weights from being updated.
+This script handles the execution of the selected algorithm, which in this example is `rec sable` utilizing the Anakin architecture. The key configuration variable is `arch.train=False` which freezes the learning process and configures the system to run exclusively in evaluation mode preventing the weights from being updated.
 
 ---
 
 ### Deactivation of Memory
 Previous benchmark stages demonstrate that memory recurrent models achieve superior peak rewards during transfer learning or intensive training cycles. However, these same architectures face severe exploration bottlenecks during the initial phases of learning. 
 
-To address this limitation, a hybrid training strategy is proposed: initializing the training pipeline without memory layers to accelerate early feature discovery, and activating the recurrent memory blocks midway through the process to enhance long horizon optimization. While the programmatic construction of this dynamic hybrid architecture falls outside the scope of this thesis, the following experiment provides a empirical justification for its implementation in future research.
+To address this limitation, a hybrid training strategy is proposed: initializing the training process without memory states to accelerate early feature discovery and activating memory midway through the process to optimize the time horizon. While the programmatic construction of this dynamic hybrid architecture is beyond the scope of this thesis, the following experiment provides empirical justification for its implementation in future research.
 
 The table below details the average number of delivered packages achieved by the Hybrid Sable approach (loading feed forward weights into the memory network) versus the standard Recurrent Sable approach (using memory weights for both initial training and subsequent re-training).
 
 <div align='center'>
 
-| Environment Layout | Hybrid Sable (FF to REC) | Recurrent Sable (REC to REC) |
-| :--- | :---: | :---: |
-| small-4ag | 14.79 | 13.92 |
-| medium-4ag | 3.73 | 3.24 |
-| medium-6ag | 8.01 | 0.14 |
+| Alg. \ Env. | small-4ag | medium-4ag | medium-6ag |
+| :--- | :---: | :---: | :---: |
+| Hybrid Sable (FF to REC) | 14.79 |  3.73 | 8.01 |
+| Recurrent Sable (REC to REC) | 13.92 | 3.24 | 0.14 |
+| medium-6ag |  
 
 </div>
 
@@ -814,7 +815,7 @@ The following visual demonstrations showcase the behavioral execution and coordi
 🥇 **Top Model: rec sable (Transfer Learning)**  
 *Average Reward: 35.64*
 
-<img src="render/rec_sable/rware_tiny-4ag.gif" width="100%" alt="Tiny Layout Best Model">
+<img src="render/rec_sable/rware_tiny-4ag.gif" width="40%" alt="Tiny Layout Best Model">
 
 </div>
 
@@ -824,7 +825,7 @@ The following visual demonstrations showcase the behavioral execution and coordi
 🥇 **Top Model: rec sable (Transfer Learning)**  
 *Average Reward: 21.54*
 
-<img src="render/rec_sable/rware_small-4ag.gif" width="100%" alt="Small Layout Best Model">
+<img src="render/rec_sable/rware_small-4ag.gif" width="40%" alt="Small Layout Best Model">
 
 </div>
 
@@ -835,7 +836,7 @@ The following visual demonstrations showcase the behavioral execution and coordi
 *Average Reward: 25.30*
 
 <!-- Replace with your actual gif path -->
-<img src="render/rec_sable/rware_medium-6ag.gif" width="100%" alt="Medium 6ag Best Model">
+<img src="render/rec_sable/rware_medium-6ag.gif" width="40%" alt="Medium 6ag Best Model">
 
 </div>
 </div>
