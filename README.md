@@ -21,7 +21,7 @@ The primary objective of this study is to measure and benchmark the task perform
   * [Zero-Shot Generalization to Agent Counts](#zero-shot-generalization-to-agent-counts)
   * [Deactivation of Memory](#deactivation-of-memory)
   * [Visual Rollouts of Top Performing Models](#visual-rollouts-of-top-performing-models)
-* [4. Conclusion](#-conclusion)
+* [4. Conclusions](#-conclusions)
 * [5. Future work](#️-future-work)
 * [6. References](#-references)
 
@@ -274,12 +274,13 @@ The table below displays the average number of delivered packages during inferen
 * **The Exploration Bottleneck in Small Maps:** Scaling up to `small` layouts triggers a steep performance drop. **MAT stands out as the only architecture maintaining an acceptable delivery rate**. Standard recurrent models (with GRU or memory blocks) suffer severe performance deterioration here compared to their feed-forward counterparts. This likely  indicates a credit-assignment failure: due to delayed rewards in larger search spaces, the memory blocks wrongly associate long historical trajectories with low-value or useless states.
 * **Medium Map Dynamics & Scalability Boundaries:** In `medium` environments, the performance of all memory-centric models alongside `ff sable` collapses close to zero. However, critical structural patterns emerge among the remaining baselines:
   * **IPPO:** Achieves minor success with 4 agents but drops to zero with 6, since treating independent agents as environmental noise compounds complexity exponentially as numbers grow.
-  * **MAPPO:** Mitigates this breakdown through its shared centralized critic; elevating the agent count increases the simulation context, yielding slightly superior results.
+  * **MAPPO:** Mitigates this breakdown through its shared centralized critic. Elevating the agent count increases the simulation context, yielding slightly superior results.
   * **MAT:** Dominates the 4-agent variant but experiences a coordination bottleneck with 6 agents, equalizing its final score with MAPPO.
-  * **rec ippo (Anomaly):** Behaves erratically, failing completely with 4 agents but outperforming other PPO variants with 6 agents. This reinforces the hypothesis that high agent density is the primary driver for successful exploration in memory-recurrent baselines.
+  * **rec ippo (Anomaly):** Behaves erratically, failing completely with 4 agents but outperforming the rest of the algorithms with 6 agents. This reinforces the hypothesis that high agent density is the primary driver for successful exploration in memory-recurrent baselines.
 
 
 The following table records the absolute training execution times for each algorithm across the evaluated simulator configurations:
+<div align="center">
 
 <table>
   <thead>
@@ -319,7 +320,7 @@ The following table records the absolute training execution times for each algor
     </tr>
     <tr>
       <td><b>rec mappo</b></td>
-      <td align="right">17:29</td>
+      <td align="right">0:17:29</td>
       <td align="right">0:18:42</td>
       <td align="right">0:22:35</td>
       <td align="right">0:27:35</td>
@@ -360,6 +361,8 @@ The following table records the absolute training execution times for each algor
   </tbody>
 </table>
 
+</div>
+
 * **Map Size Penalty:** As the simulator complexity scales, training times increase significantly. Map dimensions act as the primary computational bottleneck due to the intense model-environment interaction loop, which inherently decreases the steps-per-second (SPS) processing throughput.
 * **Algorithmic Overhead:** Classical, feed-forward PPO baselines remain the fastest configurations. However, introducing recurrent memory layers inflicts a massive temporal penalty. Overall, **MAGPO** emerges as the most computationally expensive architecture. 
 * **The Transformer Sweet Spot:** Transformer-based models manage a well-balanced computational profile. While marginally slower than reactive, feed-forward PPO networks, they execute significantly faster than traditional recurrent baseline architectures (GRU-based models).
@@ -370,130 +373,108 @@ To replicate these baseline experiments, use the following execution template.
 ```bash
 export XLA_PYTHON_CLIENT_ALLOCATOR=platform
 
-python mava/systems/mat/anakin/mat.py
-    env=rware
-    env/scenario=tiny-2ag
-    logger.loggers.tensorboard.enabled=true
-    logger.loggers.json.enabled=true
-    logger.checkpointing.save_model=true
-    logger.checkpointing.save_args.save_interval_steps=10
-    arch.num_envs=32
-    arch.num_evaluation=244
-    arch.num_absolute_metric_eval_episodes=640
+python mava/systems/mat/anakin/mat.py \
+    env=rware \
+    env/scenario=tiny-2ag \
+    logger.loggers.tensorboard.enabled=true \
+    logger.loggers.json.enabled=true \
+    logger.checkpointing.save_model=true \
+    logger.checkpointing.save_args.save_interval_steps=10 \
+    arch.num_envs=32 \
+    arch.num_evaluation=244 \
+    arch.num_absolute_metric_eval_episodes=640 \
     system.num_updates=2000
 ```
 
-The first line is instructions to prevent JAX from pre-allocating 90% of the GPU VRAM. Given our hardware resources, this parameter was mandatory to avoid system deadlocks. The rest of the command handles the execution of the selected algorithm—which in this example is MAT utilizing the Anakin architecture. The subsequent configuration variables manage the environment setup, logging, and hyperparameters.
+The first line is instructions to prevent JAX from pre-allocating 90% of the GPU VRAM. Given our hardware resources, this parameter was mandatory to avoid system deadlocks. The rest of the command handles the execution of the selected algorithm, which in this example is MAT utilizing the Anakin architecture. The subsequent configuration variables manage the environment setup, logging, and hyperparameters.
 
-For this specific benchmark, the only variable modified across runs is env/scenario to swap the target map configuration. During the training pipeline, 32 environment scenarios run simultaneously, the policy is evaluated 244 times, and the network undergoes a total of 2,000 system updates. Finally, to test model inference, 640 absolute evaluation episodes are executed.
-
+For this specific performance test, the only variable modified between runs is `env/scenario` to swap the map configuration. During the training process, 32 environment scenarios are run simultaneously, the policy is evaluated 244 times, and the network is updated a total of 2000 times. Finally, to test the model's inference, 640 evaluation episodes are run.
 
 ---
 
 ### Transfer learning
 This section analyzes the impact of transferring knowledge across different warehouse configurations. The evaluation tracks how policies trained in smaller layouts scale up to more complex environments.
 
->❗This transfer learning analysis excludes `rec ippo` and `rec magpo` due to poor initial performance in tiny layouts. <br> ❗A strict requirement for policy transfer is that the network parameter count must remain completely independent of the agent density. This rule makes MAPPO structurally incompatible because its centralized critic network grows proportionally with the agent count. This variation prevents a pretrained 2 agent model from loading into a 4 agent environment.
+>❗This transfer learning analysis excludes `rec ippo` and `rec magpo` due to poor initial performance in tiny layouts.
+
+>❗A strict requirement for transfer learning is that the number of network parameters must be completely independent of the number of agents. This rule makes MAPPO structurally incompatible because its centralized critic network grows proportionally with the agent count. This variation prevents a pretrained 2 agent model from loading into a 4 agent environment.
 
 The following tables showcase the average reward achieved when training from scratch compared to initializing the weights with prior knowledge.
 
-<table width="100%">
-  <!-- FILA 1: Tiny y Small -->
-  <tr>
-    <td width="50%" valign="top">
-      <h4>Tiny Layout (4 Agents)</h4>
-      <p>Models are initialized using weights from the tiny 2ag environment.</p>
-      <table>
-        <thead>
-          <tr>
-            <th align="left">Algorithm</th>
-            <th align="center">Base Performance</th>
-            <th align="center">Transfer Learning</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>ff ippo</td><td align="center">14.48</td><td align="center">23.47</td></tr>
-          <tr><td>mat</td><td align="center">22.66</td><td align="center">27.38</td></tr>
-          <tr><td>ff sable</td><td align="center">27.34</td><td align="center">34.01</td></tr>
-          <tr><td>rec sable</td><td align="center">25.07</td><td align="center">35.64</td></tr>
-        </tbody>
-      </table>
-    </td>
-    <td width="50%" valign="top">
-      <h4>Small Layout (4 Agents)</h4>
-      <p>Models are initialized using weights from the previously retrained tiny 4ag environment.</p>
-      <table>
-        <thead>
-          <tr>
-            <th align="left">Algorithm</th>
-            <th align="center">Base Performance</th>
-            <th align="center">Transfer Learning</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>ff ippo</td><td align="center">5.85</td><td align="center">0.00</td></tr>
-          <tr><td>mat</td><td align="center">13.24</td><td align="center">17.49</td></tr>
-          <tr><td>ff sable</td><td align="center">7.81</td><td align="center">0.00</td></tr>
-          <tr><td>rec sable</td><td align="center">4.92</td><td align="center">21.54</td></tr>
-        </tbody>
-      </table>
-    </td>
-  </tr>
-  <!-- FILA 2: Medium 4ag y Medium 6ag -->
-  <tr>
-    <td width="50%" valign="top">
-      <h4>Medium Layout (4 Agents)</h4>
-      <p>Models are initialized selectively based on the best results from the small 4ag phase. The models ff ippo and ff sable load their base configurations while mat and rec sable load their TL weights.</p>
-      <table>
-        <thead>
-          <tr>
-            <th align="left">Algorithm</th>
-            <th align="center">Base Performance</th>
-            <th align="center">Transfer Learning</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>ff ippo</td><td align="center">3.39</td><td align="center">7.49</td></tr>
-          <tr><td>mat</td><td align="center">8.40</td><td align="center">12.94</td></tr>
-          <tr><td>ff sable</td><td align="center">0.02</td><td align="center">11.34</td></tr>
-          <tr><td>rec sable</td><td align="center">0.00</td><td align="center">16.71</td></tr>
-        </tbody>
-      </table>
-    </td>
-    <td width="50%" valign="top">
-      <h4>Medium Layout (6 Agents)</h4>
-      <p>Models are initialized using weights directly from the medium 4ag transfer learning phase.</p>
-      <table>
-        <thead>
-          <tr>
-            <th align="left">Algorithm</th>
-            <th align="center">Base Performance</th>
-            <th align="center">Transfer Learning</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>ff ippo</td><td align="center">0.00</td><td align="center">11.21</td></tr>
-          <tr><td>mat</td><td align="center">5.62</td><td align="center">18.10</td></tr>
-          <tr><td>ff sable</td><td align="center">0.33</td><td align="center">17.97</td></tr>
-          <tr><td>rec sable</td><td align="center">0.01</td><td align="center">25.30</td></tr>
-        </tbody>
-      </table>
-    </td>
-  </tr>
-</table>
+<div align="center">
+<div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; max-width: 1200px;">
+<!-- ROW 1 - BLOCK 1: TINY 4AG -->
+<div style="flex: 1; min-width: 45%; max-width: 48%;" valign="top">
 
-* **Tiny 4ag Environments:** Significant performance spikes appear across all models. Initializing weights via tiny 2ag yields a 60% performance boost for `ff ippo`, matching the baseline of Transformer architectures. The memory version of SABLE improves by over 40%, securing the top spot for this configuration.
+#### Tiny Layout (4 Agents)
+Models are initialized using weights from the tiny 2ag environment.
 
-* **Small 4ag Environments:** Results reveal a high degree of instability. Both `ff ippo` and `ff sable` fail to learn entirely. This suggests that rigid feed forward architectures overfit to the initial map dimensions, restricting their ability to explore new layouts (more information in section [Overfitting to Map Size](#overfitting-to-map-size)). Conversely, `mat` and `rec sable` successfully leverage prior knowledge, with `rec sable` gaining over 15 reward points.
+| Alg. \ Exp. | Base Performance | Transfer Learning |
+| :--- | :---: | :---: |
+| ff ippo | 14.48 | 23.47 |
+| mat | 22.66 | 27.38 |
+| ff sable | 27.34 | 34.01 |
+| rec sable | 25.07 | 35.64 |
+
+</div>
+
+<!-- ROW 1 - BLOCK 2: SMALL 4AG -->
+<div style="flex: 1; min-width: 45%; max-width: 48%;" valign="top">
+
+#### Small Layout (4 Agents)
+Models are initialized using weights from the previously retrained tiny 4ag environment.
+
+| Alg. \ Exp. | Base Performance | Transfer Learning |
+| :--- | :---: | :---: |
+| ff ippo | 5.85 | 0.00 |
+| mat | 13.24 | 17.49 |
+| ff sable | 7.81 | 0.00 |
+| rec sable | 4.92 | 21.54 |
+
+</div>
+
+<!-- ROW 2 - BLOCK 1: MEDIUM 4AG -->
+<div style="flex: 1; min-width: 45%; max-width: 48%; margin-top: 10px;" valign="top">
+
+#### Medium Layout (4 Agents)
+Models are initialized selectively based on the best results from the small 4ag phase. `ff ippo` and `ff sable` load their base configurations while `mat` and `rec sable` load their TL weights.
+
+| Alg. \ Exp. | Base Performance | Transfer Learning |
+| :--- | :---: | :---: |
+| ff ippo | 3.39 | 7.49 |
+| mat | 8.40 | 12.94 |
+| ff sable | 0.02 | 11.34 |
+| rec sable | 0.00 | 16.71 |
+
+</div>
+
+<!-- ROW 2 - BLOCK 2: MEDIUM 6AG -->
+<div style="flex: 1; min-width: 45%; max-width: 48%; margin-top: 10px;" valign="top">
+
+#### Medium Layout (6 Agents)
+Models are initialized using weights directly from the medium 4ag transfer learning phase.
+
+| Alg. \ Exp. | Base Performance | Transfer Learning |
+| :--- | :---: | :---: |
+| ff ippo | 0.00 | 11.21 |
+| mat | 5.62 | 18.10 |
+| ff sable | 0.33 | 17.97 |
+| rec sable | 0.01 | 25.30 |
+
+</div>
+</div>
+</div>
+
+* **Tiny 4ag Environments:** Significant performance spikes appear across all models. Initializing weights via tiny 2ag yields a 60% performance boost for `ff ippo`, matching the baseline of Transformer architectures. The memory version of SABLE improves by over 40%, ranking first for this configuration.
+
+* **Small 4ag Environments:** Results reveal a high degree of instability. Both `ff ippo` and `ff sable` fail to learn entirely. This suggests that, given an overfitted model, feed-forward architectures are too rigid to explore and find a good policy (more information in the [Overfitting to Map Size](#overfitting-to-map-size) section). Conversely, `mat` and `rec sable` successfully leverage prior knowledge, with `rec sable` gaining over 15 reward points.
 
 * **Medium 4ag Environments:** Every single algorithm successfully outperforms its respective baseline. While `ff ippo` doubles its score, it remains the lowest performing option. `mat` yields a steady but moderate improvement due to its high initial baseline. Both SABLE architectures jump from a baseline of zero to remarkable performance levels, especially the recurrent version.
 
 * **Medium 6ag Environments:** While `mat` was the only algorithm capable of scoring above zero from scratch, transfer learning enables every model to surpass the 10 point threshold. `rec sable` achieves the highest reward by a wide margin, proving that weight initialization gives memory structures an outstanding training advantage.
 
----
 
 <p align="center">
-  <!-- Place your 4 evaluation graphs here -->
   <img src="charts\202604_tl_vs_hard_ff_ippo.png" width="45%" alt="IPPO Comparison">
   <img src="charts\202604_tl_vs_hard_mat.png" width="45%" alt="MAT Comparison">
   <br>
@@ -879,7 +860,7 @@ python mava/systems/sable/anakin/rec_sable.py \
 
 This script handles the execution of the selected algorithm which in this example is `rec sable` utilizing the Anakin architecture. The configuration flag `arch.render=True` triggers the simulation visualization engine while `arch.train=False` and `arch.absolute_metric=False` bypass both the standard training loops and the absolute metric logging routines to focus exclusively on rendering the active episode rollout.
 
-## 🎯 Conclusion
+## 🎯 Conclusions
 
 The experiments conducted in this benchmark establish a comprehensive comparative framework to evaluate traditional Multi Agent Reinforcement Learning (MARL) algorithms against state of the art Transformer based models. The empirical evidence gathered across the different warehouse testing environments leads to the following core conclusions.
 
