@@ -174,8 +174,31 @@ This benchmark is designed to answer critical questions regarding the current st
 
 
 ## 💻 Installation
+If you are using Windows, I highly recommend installing the [Windows Subsystem for Linux](https://learn.microsoft.com/es-es/windows/wsl/install) (WSL) to avoid configuration problems and fully leverage the code's potential.
+
+It is also recommended to install the [UV](https://docs.astral.sh/uv/getting-started/installation/) package manager.
+
+To get started, clone the repository and install the dependencies:
+```bash
+# Clone the repository
+git clone https://github.com/Javier-21/benchmarking-marl-rware.git
+cd Mava
+# Create a virtual environment and install all dependencies
+# Use --extra cuda12 for GPU-accelerated JAX
+uv sync --extra cuda12
+# Activate the virtual environment
+source .venv/bin/activate
+```
+
+The following command executes an IPPO training session on the RWARE tiny scenario with 4 agents:
+```bash
+export XLA_PYTHON_CLIENT_ALLOCATOR=platform
+
+python mava/systems/ppo/anakin/ff_ippo.py env=rware env/scenario=tiny-4ag
+```
 
 ## 📊 Experiments & Results
+This section presents five experiments conducted to evaluate the algorithm's performance and capabilities, followed by a detailed analysis of the results.
 
 ### Base Performance
 
